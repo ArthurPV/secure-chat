@@ -1,59 +1,102 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/local_storage.dart';
+import 'edit_profile.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text("Paramètres"),
-        automaticallyImplyLeading: false, // ✅ No back arrow
-      ),
-      body: ListView(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        children: [
-          // ✅ User Profile Section
-          ListTile(
-            leading: CircleAvatar(
-              radius: 30,
-              backgroundImage: NetworkImage("https://placehold.co/100x100"),
-            ),
-            title: Text("Jean Marcel", style: TextStyle(fontWeight: FontWeight.w600)),
-            subtitle: Text("+1 819-545-3956"),
-            trailing: Icon(Icons.edit, color: Colors.blue),
-            onTap: () {
-              // TODO: Navigate to Edit Profile Screen
-            },
-          ),
-          Divider(),
+  _SettingsScreenState createState() => _SettingsScreenState();
+}
 
-          // ✅ Account Settings
-          _buildSettingsOption(context, Icons.person, "Compte", "Modifier votre compte"),
-          _buildSettingsOption(context, Icons.chat, "Chats", "Paramètres de conversation"),
-          _buildSettingsOption(context, Icons.notifications, "Notifications", "Gérer les notifications"),
-          _buildSettingsOption(context, Icons.lock, "Confidentialité", "Sécurité et confidentialité"),
-          _buildSettingsOption(context, Icons.data_usage, "Utilisation des données", "Données et stockage"),
+class _SettingsScreenState extends State<SettingsScreen> {
+  String? _username;
+  String? _phoneNumber;
 
-          Divider(),
-
-          // ✅ Additional Settings
-          _buildSettingsOption(context, Icons.help, "Aide", "Assistance et FAQ"),
-          _buildSettingsOption(context, Icons.group, "Invitez vos amis", "Partager l'application"),
-        ],
-      ),
-    );
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
   }
 
-  // ✅ Helper function to build settings items
-  Widget _buildSettingsOption(BuildContext context, IconData icon, String title, String subtitle) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.blue),
-      title: Text(title),
-      subtitle: Text(subtitle),
-      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-      onTap: () {
-        // TODO: Implement navigation to sub-settings
-      },
+  void _loadUserData() async {
+    String? savedName = await LocalStorage.getUsername();
+    String? savedPhone = await LocalStorage.getPhoneNumber();
+
+    setState(() {
+      _username = savedName ?? "Unknown User";
+      _phoneNumber = savedPhone ?? "Not Set";
+    });
+  }
+
+  void _logout(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // 🚀 Clear all user data
+    await prefs.remove('username');
+    await prefs.remove('phone_number');
+    await prefs.remove('profile_picture');
+    await prefs.remove('chats');
+    await LocalStorage.clearContacts();
+
+    // Redirect to Walkthrough/Login screen
+    Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+  }
+
+
+  void _openEditProfile(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => EditProfileScreen()),
+    ).then((_) {
+      _loadUserData(); // Reload user info after profile edit
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () async => false, // 🚀 Prevents going back manually
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: Text("Settings"),
+          automaticallyImplyLeading: false, // Removes back arrow
+          backgroundColor: Colors.white,
+          elevation: 0,
+        ),
+        body: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            children: [
+              // User Profile Info
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: ListTile(
+                  leading: Icon(Icons.person, color: Colors.blue),
+                  title: Text(_username ?? "Loading...", style: TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text("Phone: $_phoneNumber"),
+                  trailing: IconButton(
+                    icon: Icon(Icons.edit, color: Colors.blue),
+                    onPressed: () => _openEditProfile(context),
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 20),
+              Divider(),
+
+              // Logout Button
+              ListTile(
+                leading: Icon(Icons.logout, color: Colors.red),
+                title: Text("Logout", style: TextStyle(color: Colors.red)),
+                onTap: () => _logout(context),
+                trailing: Icon(Icons.exit_to_app, color: Colors.red),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

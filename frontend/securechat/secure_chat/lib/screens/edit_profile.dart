@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import '../utils/local_storage.dart';
 
-class ProfileScreen extends StatefulWidget {
+class EditProfileScreen extends StatefulWidget {
   @override
-  _ProfileScreenState createState() => _ProfileScreenState();
+  _EditProfileScreenState createState() => _EditProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _EditProfileScreenState extends State<EditProfileScreen> {
   TextEditingController _nameController = TextEditingController();
   String? _profilePicture;
-  String? _errorMessage;
-  bool _isButtonEnabled = true; // Button is enabled by default
+  String _errorMessage = "";
+  bool _isButtonEnabled = false;
 
   @override
   void initState() {
@@ -25,6 +25,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       if (savedName != null) _nameController.text = savedName;
       _profilePicture = savedProfilePicture;
+      _validateInput(savedName ?? ""); // Validate input on load
+    });
+  }
+
+  void _validateInput(String value) {
+    setState(() {
+      if (value.trim().isEmpty) {
+        _errorMessage = "Le nom ne peut pas être vide";
+        _isButtonEnabled = false;
+      } else {
+        _errorMessage = "";
+        _isButtonEnabled = true;
+      }
     });
   }
 
@@ -39,23 +52,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     await LocalStorage.saveUsername(name);
-
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Profil sauvegardé!")),
+      SnackBar(content: Text("Profil mis à jour!")),
     );
-
-    // 🚀 Navigate to Main Screen after saving
-    Future.delayed(Duration(seconds: 1), () {
-      Navigator.pushReplacementNamed(context, '/main');
-    });
+    Navigator.pop(context); // 🚀 Return to Settings
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // ✅ Ensure background is white
+      backgroundColor: Colors.white, // ✅ Fix background color
       appBar: AppBar(
-        title: Text("Votre Profil"),
+        title: Text("Modifier le profil"),
         backgroundColor: Colors.white, // ✅ Match background
         elevation: 0, // ✅ Remove shadow
         iconTheme: IconThemeData(color: Colors.black), // ✅ Ensure visibility
@@ -90,14 +98,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // Name Input Field
             TextField(
               controller: _nameController,
+              onChanged: _validateInput, // ✅ Validate input while typing
               decoration: InputDecoration(
-                labelText: "Entrez votre nom",
+                labelText: "Modifier votre nom",
                 filled: true, // ✅ Ensures white background
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                errorText: _errorMessage, // ✅ Show error only when submitted empty
+                errorText: _errorMessage.isNotEmpty ? _errorMessage : null, // ✅ Show error if needed
               ),
             ),
             SizedBox(height: 20),
@@ -106,16 +115,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _saveUserData, // ✅ Keep button always enabled
+                onPressed: _isButtonEnabled ? _saveUserData : null, // ✅ Disable button if invalid
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF4B00FA),
+                  backgroundColor: _isButtonEnabled ? Color(0xFF4B00FA) : Colors.grey,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
                   padding: EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: Text(
-                  "Sauvegarder",
+                  "Enregistrer",
                   style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),

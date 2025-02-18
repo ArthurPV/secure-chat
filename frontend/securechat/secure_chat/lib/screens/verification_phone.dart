@@ -1,6 +1,48 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/local_storage.dart';
 
-class PhoneVerificationScreen extends StatelessWidget {
+class PhoneVerificationScreen extends StatefulWidget {
+  @override
+  _PhoneVerificationScreenState createState() => _PhoneVerificationScreenState();
+}
+
+class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
+  TextEditingController _phoneController = TextEditingController();
+  String _countryCode = "+1"; // Default country code
+  String _errorMessage = "";
+  bool _isButtonEnabled = false;
+
+  void _validatePhoneNumber(String value) {
+    setState(() {
+      if (value.length != 10) {
+        _errorMessage = "Le numéro doit contenir exactement 10 chiffres";
+        _isButtonEnabled = false;
+      } else {
+        _errorMessage = "";
+        _isButtonEnabled = true;
+      }
+    });
+  }
+
+  void _continue() async {
+    String phoneNumber = _phoneController.text.trim();
+
+    if (phoneNumber.length != 10) {
+      setState(() {
+        _errorMessage = "Le numéro doit contenir exactement 10 chiffres";
+      });
+      return;
+    }
+
+    String fullNumber = "$_countryCode $phoneNumber"; // Format the number
+
+    await LocalStorage.savePhoneNumber(fullNumber); // ✅ Save to local storage
+
+    // 🚀 Navigate to OTP verification screen with phone number
+    Navigator.pushNamed(context, '/verification_code', arguments: fullNumber);
+  }
+
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
@@ -14,10 +56,9 @@ class PhoneVerificationScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Top Spacer
               Spacer(flex: 1),
 
-              // Title Section
+              // Title
               Text(
                 "Entrez votre numéro de téléphone",
                 textAlign: TextAlign.center,
@@ -27,7 +68,9 @@ class PhoneVerificationScreen extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              SizedBox(height: 10), // Spacing
+              SizedBox(height: 10),
+
+              // Description
               Text(
                 "Veuillez confirmer votre code pays et saisir votre numéro de téléphone",
                 textAlign: TextAlign.center,
@@ -38,12 +81,12 @@ class PhoneVerificationScreen extends StatelessWidget {
                 ),
               ),
 
-              SizedBox(height: screenHeight * 0.05), // Spacing
+              SizedBox(height: screenHeight * 0.05),
 
-              // Phone Number Input Section
+              // Phone Number Input
               Row(
                 children: [
-                  // Country Code Field
+                  // Country Code
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
@@ -51,7 +94,7 @@ class PhoneVerificationScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      "+1", // Default country code
+                      _countryCode,
                       style: TextStyle(
                         color: Color(0xFF0F1828),
                         fontSize: 16,
@@ -59,13 +102,18 @@ class PhoneVerificationScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  SizedBox(width: 10), // Spacing
-                  // Phone Number Input Field
+                  SizedBox(width: 10),
+
+                  // Phone Number Field
                   Expanded(
                     child: TextField(
-                      keyboardType: TextInputType.phone,
+                      controller: _phoneController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 10,
+                      onChanged: _validatePhoneNumber,
                       decoration: InputDecoration(
                         hintText: "Numéro de téléphone",
+                        counterText: "", // Hide counter text
                         hintStyle: TextStyle(color: Color(0xFFADB5BD)),
                         filled: true,
                         fillColor: Color(0xFFF7F7FC),
@@ -80,22 +128,30 @@ class PhoneVerificationScreen extends StatelessWidget {
                 ],
               ),
 
-              Spacer(flex: 2), // Push everything up
+              // Error Message
+              if (_errorMessage.isNotEmpty)
+                Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text(
+                    _errorMessage,
+                    style: TextStyle(color: Colors.red, fontSize: 14),
+                  ),
+                ),
+
+              Spacer(flex: 2),
 
               // Continue Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF4B00FA),
+                    backgroundColor: _isButtonEnabled ? Color(0xFF4B00FA) : Colors.grey,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),
                     padding: EdgeInsets.symmetric(vertical: 16),
                   ),
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/verification_code');
-                  },
+                  onPressed: _isButtonEnabled ? _continue : null,
                   child: Text(
                     "Continuer",
                     style: TextStyle(
@@ -107,7 +163,7 @@ class PhoneVerificationScreen extends StatelessWidget {
                 ),
               ),
 
-              Spacer(flex: 3), // Bottom space
+              Spacer(flex: 3),
 
               // Bottom Indicator
               Container(
@@ -119,7 +175,7 @@ class PhoneVerificationScreen extends StatelessWidget {
                 ),
               ),
 
-              SizedBox(height: 20), // Extra bottom spacing
+              SizedBox(height: 20),
             ],
           ),
         ),

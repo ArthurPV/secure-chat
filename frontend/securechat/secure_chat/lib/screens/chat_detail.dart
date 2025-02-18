@@ -1,85 +1,120 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
-class ChatDetailScreen extends StatelessWidget {
-  final String name;
-  final String avatar;
+class ChatDetailScreen extends StatefulWidget {
+  final String contactName;
+  ChatDetailScreen({required this.contactName});
 
-  ChatDetailScreen({required this.name, required this.avatar});
+  @override
+  _ChatDetailScreenState createState() => _ChatDetailScreenState();
+}
+
+class _ChatDetailScreenState extends State<ChatDetailScreen> {
+  TextEditingController _messageController = TextEditingController();
+  List<String> messages = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMessages();
+  }
+
+  Future<void> _loadMessages() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? chatData = prefs.getString(widget.contactName);
+    if (chatData != null) {
+      setState(() {
+        messages = List<String>.from(json.decode(chatData));
+      });
+    }
+  }
+
+  Future<void> _saveMessages() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString(widget.contactName, json.encode(messages));
+  }
+
+  void _sendMessage() {
+    if (_messageController.text.trim().isEmpty) return;
+    setState(() {
+      messages.add(_messageController.text.trim());
+    });
+    _messageController.clear();
+    _saveMessages();
+  }
+
+  void _deleteConversation() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove(widget.contactName);
+    Navigator.pop(context); // Go back to the chats list
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Row(
-          children: [
-            CircleAvatar(backgroundImage: NetworkImage(avatar)),
-            SizedBox(width: 10),
-            Text(name),
-          ],
-        ),
+        title: Text(widget.contactName),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: IconThemeData(color: Colors.black),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.delete, color: Colors.red),
+            onPressed: _deleteConversation,
+          ),
+        ],
       ),
       body: Column(
         children: [
           Expanded(
-            child: ListView(
-              padding: EdgeInsets.all(16),
+            child: ListView.builder(
+              itemCount: messages.length,
+              itemBuilder: (context, index) {
+                return Align(
+                  alignment: Alignment.centerRight,
+                  child: Container(
+                    margin: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+                    padding: EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.blueAccent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      messages[index],
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(10),
+            child: Row(
               children: [
-                _buildMessage(true, "Salut ! Comment ça va ?"),
-                _buildMessage(false, "Très bien, et toi ?"),
-                _buildMessage(true, "Je vais bien aussi !"),
-                _buildMessage(false, "Cool, qu'est-ce que tu fais ?"),
+                Expanded(
+                  child: TextField(
+                    controller: _messageController,
+                    decoration: InputDecoration(
+                      hintText: "Écrire un message...",
+                      filled: true,
+                      fillColor: Colors.grey[200],
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 10),
+                IconButton(
+                  icon: Icon(Icons.send, color: Colors.blue),
+                  onPressed: _sendMessage,
+                ),
               ],
             ),
-          ),
-          _buildMessageInput(),
-        ],
-      ),
-    );
-  }
-
-  // ✅ Builds chat messages
-  Widget _buildMessage(bool isMe, String text) {
-    return Align(
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: EdgeInsets.symmetric(vertical: 5),
-        padding: EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: isMe ? Colors.blue : Colors.grey[300],
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(color: isMe ? Colors.white : Colors.black),
-        ),
-      ),
-    );
-  }
-
-  // ✅ Builds message input field
-  Widget _buildMessageInput() {
-    return Container(
-      padding: EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5)],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: "Tapez votre message...",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-          ),
-          IconButton(
-            icon: Icon(Icons.send, color: Colors.blue),
-            onPressed: () {
-              // TODO: Send message logic
-            },
           ),
         ],
       ),
