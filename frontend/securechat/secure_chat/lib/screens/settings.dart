@@ -48,18 +48,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context,
       MaterialPageRoute(builder: (context) => EditProfileScreen()),
     ).then((_) {
-      _loadUserData(); // Reload user info after profile edit
+      _loadUserData();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      onWillPop: () async => false, // 🚀 Prevents going back manually
+      onWillPop: () async => false, //
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
-          title: Text("Settings"),
+          title: Text("Paramètres"),
           automaticallyImplyLeading: false, // Removes back arrow
           backgroundColor: Colors.white,
           elevation: 0,
@@ -89,7 +89,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Logout Button
               ListTile(
                 leading: Icon(Icons.logout, color: Colors.red),
-                title: Text("Logout", style: TextStyle(color: Colors.red)),
+                title: Text("Déconnexion", style: TextStyle(color: Colors.red)),
                 onTap: () => _logout(context),
                 trailing: Icon(Icons.exit_to_app, color: Colors.red),
               ),

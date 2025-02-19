@@ -20,6 +20,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _loadMessages();
   }
 
+  // Load chat messages saved under a key equal to the contact's name.
   Future<void> _loadMessages() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? chatData = prefs.getString(widget.contactName);
@@ -30,25 +31,60 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
+  // Save the chat messages under the contact's name.
   Future<void> _saveMessages() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString(widget.contactName, json.encode(messages));
   }
 
-  void _sendMessage() {
-    if (_messageController.text.trim().isEmpty) return;
-    setState(() {
-      messages.add(_messageController.text.trim());
-    });
-    _messageController.clear();
-    _saveMessages();
+  // Update the conversation summary (lastMessage) in the "chats" key.
+  Future<void> _updateConversationSummary(String newMessage) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? chatData = prefs.getString('chats');
+    if (chatData != null) {
+      List<Map<String, dynamic>> convos =
+      List<Map<String, dynamic>>.from(json.decode(chatData));
+      for (var convo in convos) {
+        if (convo["name"] == widget.contactName) {
+          convo["lastMessage"] = newMessage;
+          break;
+        }
+      }
+      await prefs.setString('chats', json.encode(convos));
+    }
   }
 
+  // Send a message, update local state and conversation summary.
+  void _sendMessage() async {
+    String message = _messageController.text.trim();
+    if (message.isEmpty) return;
+    setState(() {
+      messages.add(message);
+    });
+    _messageController.clear();
+    await _saveMessages();
+    await _updateConversationSummary(message);
+  }
+
+// Delete the entire conversation.
   void _deleteConversation() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    // Remove the conversation messages stored under the contact's key.
     await prefs.remove(widget.contactName);
-    Navigator.pop(context); // Go back to the chats list
+
+    // Also update the conversation summary stored in 'chats'
+    String? chatData = prefs.getString('chats');
+    if (chatData != null) {
+      List<Map<String, dynamic>> convos = List<Map<String, dynamic>>.from(json.decode(chatData));
+      // Remove the conversation summary for this contact
+      convos.removeWhere((chat) => chat["name"] == widget.contactName);
+      await prefs.setString('chats', json.encode(convos));
+    }
+
+    Navigator.pop(context); // Return to the Chats screen.
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +106,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         children: [
           Expanded(
             child: ListView.builder(
+              padding: EdgeInsets.all(16),
               itemCount: messages.length,
               itemBuilder: (context, index) {
                 return Align(

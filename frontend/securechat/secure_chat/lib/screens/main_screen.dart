@@ -11,16 +11,29 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 1; // Default to Chats tab
 
-  final List<Widget> _screens = [
-    ContactsScreen(),
-    ChatsScreen(),
-    SettingsScreen(),
-  ];
+
+  final GlobalKey<ChatsScreenState> chatsKey = GlobalKey<ChatsScreenState>();
+
+  late final List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      ContactsScreen(),
+      ChatsScreen(key: chatsKey),
+      SettingsScreen(),
+    ];
+  }
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
+
+    if (index == 1) {
+      chatsKey.currentState?. loadChats();
+    }
   }
 
   @override

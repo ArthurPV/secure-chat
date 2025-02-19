@@ -1,32 +1,37 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'chat_detail.dart';
 
 class ChatsScreen extends StatefulWidget {
+  ChatsScreen({Key? key}) : super(key: key);
+
   @override
-  _ChatsScreenState createState() => _ChatsScreenState();
+  ChatsScreenState createState() => ChatsScreenState();
 }
 
-class _ChatsScreenState extends State<ChatsScreen> {
+class ChatsScreenState extends State<ChatsScreen> {
   List<Map<String, dynamic>> conversations = [];
 
   @override
   void initState() {
     super.initState();
-    _loadChats();
+    loadChats();
   }
 
-  Future<void> _loadChats() async {
+  /// Loads the conversation list from SharedPreferences.
+  Future<void> loadChats() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? chatData = prefs.getString('chats');
-    if (chatData != null) {
-      setState(() {
-        conversations = List<Map<String, dynamic>>.from(json.decode(chatData));
-      });
-    }
+    setState(() {
+      conversations = chatData != null
+          ? List<Map<String, dynamic>>.from(json.decode(chatData))
+          : [];
+    });
   }
 
+  /// Opens a chat conversation for the given contact name.
   void _openChat(String contactName) async {
     await Navigator.push(
       context,
@@ -34,9 +39,10 @@ class _ChatsScreenState extends State<ChatsScreen> {
         builder: (context) => ChatDetailScreen(contactName: contactName),
       ),
     );
-    _loadChats(); // ✅ Refresh chat list when returning
+    loadChats(); // Refresh conversations when returning.
   }
 
+  /// Prompts the user to start a new conversation.
   void _startNewChat() {
     TextEditingController _nameController = TextEditingController();
 
@@ -70,31 +76,36 @@ class _ChatsScreenState extends State<ChatsScreen> {
     );
   }
 
+  /// Creates a new conversation if one does not exist, then opens it.
   void _createAndOpenChat(String contactName) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? chatData = prefs.getString('chats');
-    List<Map<String, dynamic>> conversations = [];
 
     if (chatData != null) {
       conversations = List<Map<String, dynamic>>.from(json.decode(chatData));
+    } else {
+      conversations = [];
     }
 
-    bool chatExists = conversations.any((chat) => chat["name"] == contactName);
+    bool chatExists =
+    conversations.any((chat) => chat["name"] == contactName);
     if (!chatExists) {
-      conversations.add({
-        "name": contactName,
-        "lastMessage": "Nouvelle conversation",
+      setState(() {
+        conversations.add({
+          "name": contactName,
+          "lastMessage": "Nouvelle conversation",
+          "image": "" // No image by default; can be updated via contacts.
+        });
       });
       await prefs.setString('chats', json.encode(conversations));
     }
 
-    _loadChats(); // ✅ Refresh chat list immediately
-
-    // ✅ Open chat immediately
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => ChatDetailScreen(contactName: contactName)),
-    ).then((_) => _loadChats()); // ✅ Refresh UI after returning
+      MaterialPageRoute(
+        builder: (context) => ChatDetailScreen(contactName: contactName),
+      ),
+    ).then((_) => loadChats());
   }
 
   @override
@@ -115,13 +126,45 @@ class _ChatsScreenState extends State<ChatsScreen> {
       ),
       body: conversations.isEmpty
           ? Center(child: Text("Aucune conversation trouvée"))
-          : ListView.builder(
+          : ListView.separated(
         itemCount: conversations.length,
+        separatorBuilder: (context, index) => Divider(height: 1),
         itemBuilder: (context, index) {
+          final conversation = conversations[index];
+          String? imagePath = conversation["image"];
+          ImageProvider<Object>? avatarImage;
+          if (imagePath != null && imagePath.isNotEmpty) {
+            avatarImage = imagePath.startsWith('assets/')
+                ? AssetImage(imagePath) as ImageProvider<Object>
+                : FileImage(File(imagePath)) as ImageProvider<Object>;
+          }
+
           return ListTile(
-            title: Text(conversations[index]["name"]),
-            subtitle: Text(conversations[index]["lastMessage"] ?? "Aucun message"),
-            onTap: () => _openChat(conversations[index]["name"]),
+            leading: CircleAvatar(
+              backgroundImage: avatarImage,
+              backgroundColor:
+              avatarImage == null ? Colors.blueAccent : null,
+              child: avatarImage == null
+                  ? Text(
+                conversation["name"][0].toUpperCase(),
+                style: TextStyle(color: Colors.white),
+              )
+                  : null,
+            ),
+            title: Text(
+              conversation["name"],
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text(
+              conversation["lastMessage"] ?? "",
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            trailing: Text(
+              "12:00 PM", // Placeholder timestamp; update as needed.
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            onTap: () => _openChat(conversation["name"]),
           );
         },
       ),

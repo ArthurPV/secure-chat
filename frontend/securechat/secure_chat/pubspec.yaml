@@ -25,3 +25,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/undraw_mobile-encryption_flk2.svg
+    - assets/default1.png
+    - assets/default2.png
+    - assets/default3.png
+    - assets/default4.png
