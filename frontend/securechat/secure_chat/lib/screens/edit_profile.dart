@@ -55,21 +55,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Profil mis à jour!")),
     );
-    Navigator.pop(context); // 🚀 Return to Settings
+    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // ✅ Fix background color
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text("Modifier le profil"),
-        backgroundColor: Colors.white, // ✅ Match background
-        elevation: 0, // ✅ Remove shadow
-        iconTheme: IconThemeData(color: Colors.black), // ✅ Ensure visibility
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: IconThemeData(color: Colors.black),
       ),
       body: Container(
-        color: Colors.white, // ✅ Double check background stays white
+        color: Colors.white,
         padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -98,15 +98,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             // Name Input Field
             TextField(
               controller: _nameController,
-              onChanged: _validateInput, // ✅ Validate input while typing
+              onChanged: _validateInput,
               decoration: InputDecoration(
                 labelText: "Modifier votre nom",
-                filled: true, // ✅ Ensures white background
+                filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                errorText: _errorMessage.isNotEmpty ? _errorMessage : null, // ✅ Show error if needed
+                errorText: _errorMessage.isNotEmpty ? _errorMessage : null,
               ),
             ),
             SizedBox(height: 20),
@@ -115,7 +115,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isButtonEnabled ? _saveUserData : null, // ✅ Disable button if invalid
+                onPressed: _isButtonEnabled ? _saveUserData : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _isButtonEnabled ? Color(0xFF4B00FA) : Colors.grey,
                   shape: RoundedRectangleBorder(

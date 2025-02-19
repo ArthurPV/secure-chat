@@ -53,15 +53,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // ✅ Ensure background is white
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text("Votre Profil"),
-        backgroundColor: Colors.white, // ✅ Match background
-        elevation: 0, // ✅ Remove shadow
-        iconTheme: IconThemeData(color: Colors.black), // ✅ Ensure visibility
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: IconThemeData(color: Colors.black),
       ),
       body: Container(
-        color: Colors.white, // ✅ Double check background stays white
+        color: Colors.white,
         padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -92,12 +92,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               controller: _nameController,
               decoration: InputDecoration(
                 labelText: "Entrez votre nom",
-                filled: true, // ✅ Ensures white background
+                filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                errorText: _errorMessage, // ✅ Show error only when submitted empty
+                errorText: _errorMessage,
               ),
             ),
             SizedBox(height: 20),
@@ -106,7 +106,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _saveUserData, // ✅ Keep button always enabled
+                onPressed: _saveUserData,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF4B00FA),
                   shape: RoundedRectangleBorder(

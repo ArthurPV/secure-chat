@@ -35,9 +35,9 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
       return;
     }
 
-    String fullNumber = "$_countryCode $phoneNumber"; // Format the number
+    String fullNumber = "$_countryCode $phoneNumber";
 
-    await LocalStorage.savePhoneNumber(fullNumber); // ✅ Save to local storage
+    await LocalStorage.savePhoneNumber(fullNumber);
 
     // 🚀 Navigate to OTP verification screen with phone number
     Navigator.pushNamed(context, '/verification_code', arguments: fullNumber);
