@@ -15,7 +15,7 @@ RSpec.describe User, type: :model do
         end
 
         it 'unique' do
-          User.create!(email: 'user@localdev.me', password: 'password').valid?
+          User.create!(email: 'user@localdev.me', password: 'password')
 
           expect(User.new(email: 'user@localdev.me', password: 'password').valid?).to eq(false)
         end
