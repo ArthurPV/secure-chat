@@ -71,7 +71,7 @@ RSpec.configure do |config|
   # config.filter_gems_from_backtrace("gem name")
 end
 
-DatabaseCleaner.strategy = [:deletion]
+DatabaseCleaner.strategy = [ :deletion ]
 
 if ENV.fetch('COVERAGE', false)
   require 'simplecov'
