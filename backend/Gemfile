@@ -44,4 +44,10 @@ group :development, :test do
 
   # RSpec testing framework [https://rspec.info/]
   gem "rspec-rails", "~> 7.1"
+
+  # [https://github.com/DatabaseCleaner/database_cleaner]
+  gem "database_cleaner-active_record", "~> 2.2"
+
+  # Coverage measurement tool [https://github.com/simplecov-ruby/simplecov]
+  gem "simplecov", "~> 0.22.0"
 end

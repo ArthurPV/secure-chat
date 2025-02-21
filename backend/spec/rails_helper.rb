@@ -70,3 +70,13 @@ RSpec.configure do |config|
   # arbitrary gems may also be filtered via:
   # config.filter_gems_from_backtrace("gem name")
 end
+
+DatabaseCleaner.strategy = [ :deletion ]
+
+if ENV.fetch('COVERAGE', false)
+  require 'simplecov'
+
+  SimpleCov.start 'rails' do
+    enable_coverage :branch
+  end
+end
