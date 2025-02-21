@@ -78,8 +78,5 @@ if ENV.fetch('COVERAGE', false)
 
   SimpleCov.start 'rails' do
     enable_coverage :branch
-
-    add_group 'Controllers', 'app/controllers'
-    add_group 'Models', 'app/models'
   end
 end
