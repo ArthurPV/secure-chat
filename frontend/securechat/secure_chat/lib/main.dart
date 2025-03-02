@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';  // Import Firebase Core
 import 'screens/walkthrough.dart';
 import 'screens/verification_phone.dart';
 import 'screens/verification_code.dart';
@@ -12,6 +13,8 @@ import 'screens/chats.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Initialize Firebase before doing anything else.
+  await Firebase.initializeApp();
 
   final prefs = await SharedPreferences.getInstance();
   bool isFirstLaunch = prefs.getBool('first_launch') ?? true; // ✅ Check if it's the first launch
@@ -45,7 +48,6 @@ class SecureChatApp extends StatelessWidget {
         '/main': (context) => MainScreen(),
         '/edit_profile': (context) => EditProfileScreen(),
         '/chats': (context) => ChatsScreen(),
-
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/chat_detail') {
