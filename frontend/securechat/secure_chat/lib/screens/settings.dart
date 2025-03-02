@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';  // Import Firebase Auth
 import '../utils/local_storage.dart';
 import 'edit_profile.dart';
 
@@ -29,19 +30,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _logout(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
+    // Sign out from Firebase authentication.
+    await FirebaseAuth.instance.signOut();
 
-    // 🚀 Clear all user data
-    await prefs.remove('username');
-    await prefs.remove('phone_number');
-    await prefs.remove('profile_picture');
-    await prefs.remove('chats');
-    await LocalStorage.clearContacts();
+    // Do NOT clear contacts or conversation data, so they persist.
+    // final prefs = await SharedPreferences.getInstance();
+    // await prefs.remove('chats');
+    // await LocalStorage.clearContacts();
 
-    // Redirect to Walkthrough/Login screen
+    // Redirect to Walkthrough/Login screen.
     Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
   }
-
 
   void _openEditProfile(BuildContext context) {
     Navigator.push(
@@ -55,12 +54,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      onWillPop: () async => false, //
+      onWillPop: () async => false,
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
           title: Text("Paramètres"),
-          automaticallyImplyLeading: false, // Removes back arrow
+          automaticallyImplyLeading: false,
           backgroundColor: Colors.white,
           elevation: 0,
         ),
@@ -82,10 +81,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
               ),
-
               SizedBox(height: 20),
               Divider(),
-
               // Logout Button
               ListTile(
                 leading: Icon(Icons.logout, color: Colors.red),
