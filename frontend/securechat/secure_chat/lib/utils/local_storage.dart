@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
 
 class LocalStorage {
@@ -42,16 +43,24 @@ class LocalStorage {
     return prefs.getBool('dark_mode') ?? false;
   }
 
+  // Generate a unique key for contacts based on the current user's UID.
+  static String _contactsKey() {
+    String? uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      // If no user is signed in, you might throw an error or use a default key.
+      return 'contacts';
+    }
+    return 'contacts_$uid';
+  }
 
   static Future<void> saveContacts(List<Map<String, String>> contacts) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('contacts', json.encode(contacts));
+    await prefs.setString(_contactsKey(), json.encode(contacts));
   }
 
   static Future<List<Map<String, String>>> getContacts() async {
     final prefs = await SharedPreferences.getInstance();
-    String? contactData = prefs.getString('contacts');
-
+    String? contactData = prefs.getString(_contactsKey());
     if (contactData != null) {
       List<dynamic> decodedContacts = json.decode(contactData);
       return decodedContacts.map((contact) => Map<String, String>.from(contact)).toList();
@@ -59,9 +68,8 @@ class LocalStorage {
     return [];
   }
 
-
   static Future<void> clearContacts() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('contacts');
+    await prefs.remove(_contactsKey());
   }
 }

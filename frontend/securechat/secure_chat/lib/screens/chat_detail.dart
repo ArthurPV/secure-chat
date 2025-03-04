@@ -1,126 +1,117 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
+import '../repositories/data_repository.dart'; // Adjust this path based on your project structure
 
 class ChatDetailScreen extends StatefulWidget {
-  final String contactName;
-  ChatDetailScreen({required this.contactName});
+  final String chatId; // Unique identifier for the chat document in Firestore
+  ChatDetailScreen({required this.chatId});
 
   @override
   _ChatDetailScreenState createState() => _ChatDetailScreenState();
 }
 
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
-  TextEditingController _messageController = TextEditingController();
-  List<String> messages = [];
+  final TextEditingController _messageController = TextEditingController();
+  List<ChatMessage> messages = [];
+
+  // Instantiate your repository
+  final DataRepository repository = FirebaseDataRepository();
 
   @override
   void initState() {
     super.initState();
-    _loadMessages();
+    _loadChat();
   }
 
-  // Load chat messages saved under a key equal to the contact's name.
-  Future<void> _loadMessages() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? chatData = prefs.getString(widget.contactName);
-    if (chatData != null) {
-      setState(() {
-        messages = List<String>.from(json.decode(chatData));
-      });
-    }
-  }
-
-  // Save the chat messages under the contact's name.
-  Future<void> _saveMessages() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString(widget.contactName, json.encode(messages));
-  }
-
-  // Update the conversation summary (lastMessage) in the "chats" key.
-  Future<void> _updateConversationSummary(String newMessage) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? chatData = prefs.getString('chats');
-    if (chatData != null) {
-      List<Map<String, dynamic>> convos =
-      List<Map<String, dynamic>>.from(json.decode(chatData));
-      for (var convo in convos) {
-        if (convo["name"] == widget.contactName) {
-          convo["lastMessage"] = newMessage;
-          break;
-        }
-      }
-      await prefs.setString('chats', json.encode(convos));
-    }
-  }
-
-  // Send a message, update local state and conversation summary.
-  void _sendMessage() async {
-    String message = _messageController.text.trim();
-    if (message.isEmpty) return;
+  // Load the chat messages from Firestore using the repository.
+  Future<void> _loadChat() async {
+    List<Chat> chats = await repository.fetchChats();
+    // Find the chat matching the provided chatId. If not found, create an empty chat.
+    Chat currentChat = chats.firstWhere(
+          (chat) => chat.chatId == widget.chatId,
+      orElse: () => Chat(chatId: widget.chatId, messages: []),
+    );
     setState(() {
-      messages.add(message);
+      messages = currentChat.messages;
     });
+  }
+
+  // Send a message using the repository.
+  void _sendMessage() async {
+    String text = _messageController.text.trim();
+    if (text.isEmpty) return;
+
+    // Get current user's UID as sender.
+    String sender = FirebaseAuth.instance.currentUser?.uid ?? "unknown";
+
+    ChatMessage newMessage = ChatMessage(
+      sender: sender,
+      text: text,
+      timestamp: DateTime.now(),
+    );
+
+    // Send the message to Firestore via the repository.
+    await repository.sendMessage(widget.chatId, newMessage);
+
     _messageController.clear();
-    await _saveMessages();
-    await _updateConversationSummary(message);
+    // Reload the chat to update the UI.
+    await _loadChat();
   }
-
-// Delete the entire conversation.
-  void _deleteConversation() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    // Remove the conversation messages stored under the contact's key.
-    await prefs.remove(widget.contactName);
-
-    // Also update the conversation summary stored in 'chats'
-    String? chatData = prefs.getString('chats');
-    if (chatData != null) {
-      List<Map<String, dynamic>> convos = List<Map<String, dynamic>>.from(json.decode(chatData));
-      // Remove the conversation summary for this contact
-      convos.removeWhere((chat) => chat["name"] == widget.contactName);
-      await prefs.setString('chats', json.encode(convos));
-    }
-
-    Navigator.pop(context); // Return to the Chats screen.
-  }
-
 
   @override
   Widget build(BuildContext context) {
+    // Get current user's UID.
+    String currentUser = FirebaseAuth.instance.currentUser?.uid ?? "unknown";
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(widget.contactName),
+        title: Text("Chat"),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: IconThemeData(color: Colors.black),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.delete, color: Colors.red),
-            onPressed: _deleteConversation,
-          ),
-        ],
+        // Optionally add actions (e.g., delete conversation) here.
       ),
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
+            child: messages.isEmpty
+                ? Center(child: Text("Aucun message"))
+                : ListView.builder(
               padding: EdgeInsets.all(16),
               itemCount: messages.length,
               itemBuilder: (context, index) {
+                ChatMessage msg = messages[index];
+                bool isCurrentUser = msg.sender == currentUser;
                 return Align(
-                  alignment: Alignment.centerRight,
+                  alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
                   child: Container(
                     margin: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
                     padding: EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.blueAccent,
+                      color: isCurrentUser ? Colors.blueAccent : Colors.grey,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(
-                      messages[index],
-                      style: TextStyle(color: Colors.white),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // If the message is not from the current user, display sender info.
+                        if (!isCurrentUser)
+                          Text(
+                            msg.sender, // You might map the UID to a display name later.
+                            style: TextStyle(color: Colors.white70, fontSize: 10),
+                          ),
+                        Text(
+                          msg.text,
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          DateFormat('hh:mm a').format(msg.timestamp),
+                          style: TextStyle(color: Colors.white70, fontSize: 10),
+                        ),
+                      ],
                     ),
                   ),
                 );

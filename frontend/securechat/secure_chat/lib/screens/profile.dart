@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../utils/local_storage.dart';
+import '../repositories/data_repository.dart'; // Adjust the import path as needed
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -7,10 +7,13 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  // Create an instance of the repository.
+  final DataRepository repository = FirebaseDataRepository();
+
   TextEditingController _nameController = TextEditingController();
   String? _profilePicture;
   String? _errorMessage;
-  bool _isButtonEnabled = true; // Button is enabled by default
+  bool _isButtonEnabled = true;
 
   @override
   void initState() {
@@ -18,13 +21,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadUserData();
   }
 
+  // Load profile data using the repository.
   void _loadUserData() async {
-    String? savedName = await LocalStorage.getUsername();
-    String? savedProfilePicture = await LocalStorage.getProfilePicture();
-
+    var profile = await repository.getUserProfile();
     setState(() {
-      if (savedName != null) _nameController.text = savedName;
-      _profilePicture = savedProfilePicture;
+      if (profile != null) {
+        _nameController.text = profile.username;
+        _profilePicture = profile.profilePicture;
+      }
     });
   }
 
@@ -38,13 +42,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
-    await LocalStorage.saveUsername(name);
+    // Create a profile object using the current name and picture.
+    var profile = UserProfile(
+      username: name,
+      profilePicture: _profilePicture ?? "",
+    );
+    await repository.updateUserProfile(profile);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Profil sauvegardé!")),
     );
 
-    // 🚀 Navigate to Main Screen after saving
+    // Navigate to Main Screen after saving.
     Future.delayed(Duration(seconds: 1), () {
       Navigator.pushReplacementNamed(context, '/main');
     });
@@ -61,8 +70,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         iconTheme: IconThemeData(color: Colors.black),
       ),
       body: Container(
-        color: Colors.white,
         padding: EdgeInsets.all(16),
+        color: Colors.white,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -70,10 +79,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             GestureDetector(
               onTap: () {
                 setState(() {
-                  _profilePicture =
-                  "https://placehold.co/100"; // Simulated image selection
+                  // Simulate an image selection.
+                  _profilePicture = "https://placehold.co/100";
                 });
-                LocalStorage.saveProfilePicture(_profilePicture!);
               },
               child: CircleAvatar(
                 radius: 50,
@@ -86,7 +94,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             SizedBox(height: 20),
-
             // Name Input Field
             TextField(
               controller: _nameController,
@@ -101,7 +108,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             SizedBox(height: 20),
-
             // Save Button
             SizedBox(
               width: double.infinity,
@@ -116,7 +122,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: Text(
                   "Sauvegarder",
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),

@@ -1,7 +1,5 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../repositories/data_repository.dart'; // Adjust path as needed
 import 'chat_detail.dart';
 
 class ChatsScreen extends StatefulWidget {
@@ -12,7 +10,8 @@ class ChatsScreen extends StatefulWidget {
 }
 
 class ChatsScreenState extends State<ChatsScreen> {
-  List<Map<String, dynamic>> conversations = [];
+  List<Chat> chats = [];
+  final DataRepository repository = FirebaseDataRepository();
 
   @override
   void initState() {
@@ -20,29 +19,26 @@ class ChatsScreenState extends State<ChatsScreen> {
     loadChats();
   }
 
-  /// Loads the conversation list from SharedPreferences.
+  // Public method to load chats from Firestore via the repository.
   Future<void> loadChats() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? chatData = prefs.getString('chats');
+    List<Chat> fetchedChats = await repository.fetchChats();
     setState(() {
-      conversations = chatData != null
-          ? List<Map<String, dynamic>>.from(json.decode(chatData))
-          : [];
+      chats = fetchedChats;
     });
   }
 
-  /// Opens a chat conversation for the given contact name.
-  void _openChat(String contactName) async {
+  // Opens a chat conversation based on the chatId.
+  void _openChat(String chatId) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ChatDetailScreen(contactName: contactName),
+        builder: (context) => ChatDetailScreen(chatId: chatId),
       ),
     );
-    loadChats(); // Refresh conversations when returning.
+    loadChats(); // Refresh chats when returning.
   }
 
-  /// Prompts the user to start a new conversation.
+  // Prompts the user to start a new conversation.
   void _startNewChat() {
     TextEditingController _nameController = TextEditingController();
 
@@ -61,11 +57,15 @@ class ChatsScreenState extends State<ChatsScreen> {
               child: Text("Annuler"),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 String contactName = _nameController.text.trim();
                 if (contactName.isNotEmpty) {
-                  _createAndOpenChat(contactName);
+                  // Create new chat. Here, we're simulating new chat creation by generating a unique chatId.
+                  String newChatId = DateTime.now().millisecondsSinceEpoch.toString();
+                  // In a full implementation, you might create the chat document in Firestore via the repository.
+                  await loadChats();
                   Navigator.pop(context);
+                  _openChat(newChatId);
                 }
               },
               child: Text("Créer"),
@@ -74,38 +74,6 @@ class ChatsScreenState extends State<ChatsScreen> {
         );
       },
     );
-  }
-
-  /// Creates a new conversation if one does not exist, then opens it.
-  void _createAndOpenChat(String contactName) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? chatData = prefs.getString('chats');
-
-    if (chatData != null) {
-      conversations = List<Map<String, dynamic>>.from(json.decode(chatData));
-    } else {
-      conversations = [];
-    }
-
-    bool chatExists =
-    conversations.any((chat) => chat["name"] == contactName);
-    if (!chatExists) {
-      setState(() {
-        conversations.add({
-          "name": contactName,
-          "lastMessage": "Nouvelle conversation",
-          "image": "" // No image by default; can be updated via contacts.
-        });
-      });
-      await prefs.setString('chats', json.encode(conversations));
-    }
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ChatDetailScreen(contactName: contactName),
-      ),
-    ).then((_) => loadChats());
   }
 
   @override
@@ -124,47 +92,32 @@ class ChatsScreenState extends State<ChatsScreen> {
           ),
         ],
       ),
-      body: conversations.isEmpty
+      body: chats.isEmpty
           ? Center(child: Text("Aucune conversation trouvée"))
           : ListView.separated(
-        itemCount: conversations.length,
+        itemCount: chats.length,
         separatorBuilder: (context, index) => Divider(height: 1),
         itemBuilder: (context, index) {
-          final conversation = conversations[index];
-          String? imagePath = conversation["image"];
-          ImageProvider<Object>? avatarImage;
-          if (imagePath != null && imagePath.isNotEmpty) {
-            avatarImage = imagePath.startsWith('assets/')
-                ? AssetImage(imagePath) as ImageProvider<Object>
-                : FileImage(File(imagePath)) as ImageProvider<Object>;
-          }
-
+          final chat = chats[index];
+          String lastMessage = chat.messages.isNotEmpty
+              ? chat.messages.last.text
+              : "Nouvelle conversation";
           return ListTile(
             leading: CircleAvatar(
-              backgroundImage: avatarImage,
-              backgroundColor:
-              avatarImage == null ? Colors.blueAccent : null,
-              child: avatarImage == null
-                  ? Text(
-                conversation["name"][0].toUpperCase(),
-                style: TextStyle(color: Colors.white),
-              )
-                  : null,
+              child: Text(chat.chatId.substring(0, 1)),
+              backgroundColor: Colors.blueAccent,
             ),
-            title: Text(
-              conversation["name"],
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+            title: Text(chat.chatId), // You can later show the contact's name.
             subtitle: Text(
-              conversation["lastMessage"] ?? "",
+              lastMessage,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
             trailing: Text(
-              "12:00 PM", // Placeholder timestamp; update as needed.
+              "12:00 PM", // Placeholder timestamp.
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
-            onTap: () => _openChat(conversation["name"]),
+            onTap: () => _openChat(chat.chatId),
           );
         },
       ),

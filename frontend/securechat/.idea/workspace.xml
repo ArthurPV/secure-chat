@@ -8,12 +8,14 @@
       <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/libraries/Dart_Packages.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Dart_Packages.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/secure_chat/android/app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/secure_chat/android/app/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/secure_chat/android/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/secure_chat/android/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/secure_chat/android/settings.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/secure_chat/android/settings.gradle.kts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/secure_chat/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/secure_chat/lib/main.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/secure_chat/lib/screens/settings.dart" beforeDir="false" afterPath="$PROJECT_DIR$/secure_chat/lib/screens/settings.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/secure_chat/lib/screens/verification_code.dart" beforeDir="false" afterPath="$PROJECT_DIR$/secure_chat/lib/screens/verification_code.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/secure_chat/lib/screens/verification_phone.dart" beforeDir="false" afterPath="$PROJECT_DIR$/secure_chat/lib/screens/verification_phone.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/secure_chat/lib/screens/chat_detail.dart" beforeDir="false" afterPath="$PROJECT_DIR$/secure_chat/lib/screens/chat_detail.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/secure_chat/lib/screens/chats.dart" beforeDir="false" afterPath="$PROJECT_DIR$/secure_chat/lib/screens/chats.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/secure_chat/lib/screens/contacts.dart" beforeDir="false" afterPath="$PROJECT_DIR$/secure_chat/lib/screens/contacts.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/secure_chat/lib/screens/edit_profile.dart" beforeDir="false" afterPath="$PROJECT_DIR$/secure_chat/lib/screens/edit_profile.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/secure_chat/lib/screens/profile.dart" beforeDir="false" afterPath="$PROJECT_DIR$/secure_chat/lib/screens/profile.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/secure_chat/lib/utils/local_storage.dart" beforeDir="false" afterPath="$PROJECT_DIR$/secure_chat/lib/utils/local_storage.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/secure_chat/macos/Flutter/GeneratedPluginRegistrant.swift" beforeDir="false" afterPath="$PROJECT_DIR$/secure_chat/macos/Flutter/GeneratedPluginRegistrant.swift" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/secure_chat/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/secure_chat/pubspec.lock" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/secure_chat/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/secure_chat/pubspec.yaml" afterDir="false" />
@@ -51,7 +53,7 @@
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "dart.analysis.tool.window.visible": "false",
-    "git-widget-placeholder": "backend-integration",
+    "git-widget-placeholder": "firebase-phone-verification",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "C:/classe/secure-chat/frontend/securechat/secure_chat/android/app",
     "settings.editor.selected.configurable": "AndroidSdkUpdater",

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../utils/local_storage.dart';
+import '../repositories/data_repository.dart'; // Adjust the import path as needed
 
 class EditProfileScreen extends StatefulWidget {
   @override
@@ -7,6 +7,9 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
+  // Create an instance of the repository.
+  final DataRepository repository = FirebaseDataRepository();
+
   TextEditingController _nameController = TextEditingController();
   String? _profilePicture;
   String _errorMessage = "";
@@ -18,14 +21,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _loadUserData();
   }
 
+  // Load the current profile using the repository.
   void _loadUserData() async {
-    String? savedName = await LocalStorage.getUsername();
-    String? savedProfilePicture = await LocalStorage.getProfilePicture();
-
+    var profile = await repository.getUserProfile();
     setState(() {
-      if (savedName != null) _nameController.text = savedName;
-      _profilePicture = savedProfilePicture;
-      _validateInput(savedName ?? ""); // Validate input on load
+      if (profile != null) {
+        _nameController.text = profile.username;
+        _profilePicture = profile.profilePicture;
+      }
+      _validateInput(_nameController.text);
     });
   }
 
@@ -43,7 +47,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   void _saveUserData() async {
     String name = _nameController.text.trim();
-
     if (name.isEmpty) {
       setState(() {
         _errorMessage = "Le nom ne peut pas être vide";
@@ -51,7 +54,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
-    await LocalStorage.saveUsername(name);
+    var profile = UserProfile(
+      username: name,
+      profilePicture: _profilePicture ?? "",
+    );
+    await repository.updateUserProfile(profile);
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Profil mis à jour!")),
     );
@@ -69,8 +77,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         iconTheme: IconThemeData(color: Colors.black),
       ),
       body: Container(
-        color: Colors.white,
         padding: EdgeInsets.all(16),
+        color: Colors.white,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -78,10 +86,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             GestureDetector(
               onTap: () {
                 setState(() {
-                  _profilePicture =
-                  "https://placehold.co/100"; // Simulated image selection
+                  // Simulate image selection.
+                  _profilePicture = "https://placehold.co/100";
                 });
-                LocalStorage.saveProfilePicture(_profilePicture!);
               },
               child: CircleAvatar(
                 radius: 50,
@@ -94,7 +101,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
             SizedBox(height: 20),
-
             // Name Input Field
             TextField(
               controller: _nameController,
@@ -110,7 +116,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
             SizedBox(height: 20),
-
             // Save Button
             SizedBox(
               width: double.infinity,
@@ -125,7 +130,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 child: Text(
                   "Enregistrer",
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
