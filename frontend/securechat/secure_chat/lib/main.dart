@@ -53,7 +53,7 @@ class SecureChatApp extends StatelessWidget {
         if (settings.name == '/chat_detail') {
           final args = settings.arguments as String;
           return MaterialPageRoute(
-            builder: (context) => ChatDetailScreen(contactName: args),
+            builder: (context) => ChatDetailScreen(chatId: args),
           );
         }
         return null;

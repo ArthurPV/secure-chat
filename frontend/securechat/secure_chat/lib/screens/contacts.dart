@@ -62,7 +62,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ChatDetailScreen(contactName: contactName),
+        builder: (context) => ChatDetailScreen(chatId: contactName),
       ),
     );
   }
