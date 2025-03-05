@@ -1,5 +1,8 @@
 Rails.application.routes.draw do
-  devise_for :users
+  scope module: :auth do
+    devise_for :users, path: "auth"
+  end
+
   root "home#index"
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
