@@ -103,6 +103,9 @@ GEM
     docile (1.4.1)
     drb (2.2.1)
     erubi (1.13.1)
+    fabrication (2.31.0)
+    faker (3.5.1)
+      i18n (>= 1.8.11, < 2)
     globalid (1.2.1)
       activesupport (>= 6.1)
     i18n (1.14.7)
@@ -302,6 +305,8 @@ DEPENDENCIES
   database_cleaner-active_record (~> 2.2)
   debug
   devise (~> 4.9)
+  fabrication (~> 2.31)
+  faker
   pg (~> 1.1)
   puma (>= 5.0)
   rails (~> 7.2.2, >= 7.2.2.1)
