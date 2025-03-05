@@ -50,4 +50,10 @@ group :development, :test do
 
   # Coverage measurement tool [https://github.com/simplecov-ruby/simplecov]
   gem "simplecov", "~> 0.22.0"
+
+  # Generating Ruby object instances since 2010 [https://gitlab.com/fabrication-gem/fabrication]
+  gem "fabrication", "~> 2.31"
+
+  # A library for generating fake data such as names, addresses, and phone numbers [https://github.com/faker-ruby/faker]
+  gem "faker"
 end
