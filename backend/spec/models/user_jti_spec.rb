@@ -2,5 +2,5 @@
 
 require 'rails_helper'
 
-RSpec.describe Session, type: :model do
+RSpec.describe UserJti, type: :model do
 end

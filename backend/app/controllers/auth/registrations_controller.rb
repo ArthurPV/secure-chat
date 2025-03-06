@@ -5,14 +5,14 @@ class Auth::RegistrationsController < Devise::RegistrationsController
   # before_action :configure_account_update_params, only: [:update]
 
   # GET /resource/sign_up
-  # def new
-  #   super
-  # end
+  def new
+    render :not_found
+  end
 
-  # POST /resource
-  # def create
-  #   super
-  # end
+  # POST /auth
+  def create
+    super
+  end
 
   # GET /resource/edit
   # def edit
