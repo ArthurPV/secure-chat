@@ -9,8 +9,9 @@
 # Use this hook to configure devise mailer, warden hooks and so forth.
 # Many of these configuration options can be set straight in your model.
 Devise.setup do |config|
-  config.warden do |manager|
-    manager.failure_app = Auth::Override::Devise::FailureApp
+  config.warden do |warden|
+    warden.failure_app = Auth::Override::Devise::FailureApp
+    warden.scope_defaults :user, store: false
   end
 
   # The secret key used by Devise. Devise uses this key to generate
