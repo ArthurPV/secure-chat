@@ -1,6 +1,13 @@
 Rails.application.routes.draw do
   scope module: :auth do
-    devise_for :users, path: "auth"
+    devise_for :users, path: "auth", skip: :all
+  end
+
+  namespace :auth do
+    devise_scope :user do
+      post "sign_in", to: "authorization#create"
+      delete "sign_out", to: "authorization#destroy"
+    end
   end
 
   root "home#index"
