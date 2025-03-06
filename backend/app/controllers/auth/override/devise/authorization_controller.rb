@@ -9,4 +9,8 @@ class Auth::Override::Devise::AuthorizationController < Devise::SessionsControll
   protected
 
   def after_sign_in_path_for(_resource); end
+
+  def respond_to_on_destroy
+    head :no_content
+  end
 end
