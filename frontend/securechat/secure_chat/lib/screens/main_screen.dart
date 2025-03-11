@@ -11,9 +11,6 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 1; // Default to Chats tab
 
-
-  final GlobalKey<ChatsScreenState> chatsKey = GlobalKey<ChatsScreenState>();
-
   late final List<Widget> _screens;
 
   @override
@@ -21,7 +18,7 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     _screens = [
       ContactsScreen(),
-      ChatsScreen(key: chatsKey),
+      ChatsScreen(),
       SettingsScreen(),
     ];
   }
@@ -30,10 +27,7 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {
       _selectedIndex = index;
     });
-
-    if (index == 1) {
-      chatsKey.currentState?. loadChats();
-    }
+    // No need to manually reload chats; ChatsScreen updates in real time.
   }
 
   @override
