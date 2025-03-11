@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../repositories/data_repository.dart'; // Adjust the import path as needed
+import '../utils/local_storage.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -34,7 +35,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _saveUserData() async {
     String name = _nameController.text.trim();
-
     if (name.isEmpty) {
       setState(() {
         _errorMessage = "Le nom ne peut pas être vide";
@@ -42,21 +42,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
-    // Create a profile object using the current name and picture.
+    // Retrieve phone number from local storage.
+    String? phone = await LocalStorage.getPhoneNumber();
+    // Create a profile object using the current name, picture, and phone number.
     var profile = UserProfile(
       username: name,
       profilePicture: _profilePicture ?? "",
+      phoneNumber: phone ?? "",
     );
-    await repository.updateUserProfile(profile);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Profil sauvegardé!")),
-    );
-
-    // Navigate to Main Screen after saving.
-    Future.delayed(Duration(seconds: 1), () {
-      Navigator.pushReplacementNamed(context, '/main');
-    });
+    try {
+      await repository.updateUserProfile(profile);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Profil sauvegardé!")),
+      );
+      Future.delayed(Duration(seconds: 1), () {
+        Navigator.pushReplacementNamed(context, '/main');
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    }
   }
 
   @override

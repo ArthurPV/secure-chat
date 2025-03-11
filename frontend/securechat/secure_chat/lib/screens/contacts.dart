@@ -1,10 +1,10 @@
 import 'dart:io';
-import 'dart:convert'; // For JSON encoding/decoding
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // For SharedPreferences
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
-import '../utils/local_storage.dart';
-import 'chat_detail.dart'; // Import the ChatDetailScreen
+import '../repositories/data_repository.dart';
+import 'chat_detail.dart';
 
 class ContactsScreen extends StatefulWidget {
   @override
@@ -12,7 +12,8 @@ class ContactsScreen extends StatefulWidget {
 }
 
 class _ContactsScreenState extends State<ContactsScreen> {
-  List<Map<String, String>> contacts = [];
+  List<Contact> contacts = [];
+  final DataRepository repository = FirebaseDataRepository();
 
   @override
   void initState() {
@@ -21,52 +22,23 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   Future<void> _loadContacts() async {
-    List<Map<String, String>> savedContacts = await LocalStorage.getContacts();
+    List<Contact> fetchedContacts = await repository.fetchContacts();
     setState(() {
-      contacts = savedContacts;
+      contacts = fetchedContacts;
     });
   }
 
-  Future<void> _saveContacts() async {
-    await LocalStorage.saveContacts(contacts);
-  }
-
-  void _startChat(Map<String, String> contact) async {
-    String contactName = contact["name"]!;
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? chatData = prefs.getString('chats');
-    List<Map<String, dynamic>> conversations = [];
-
-    if (chatData != null) {
-      conversations = List<Map<String, dynamic>>.from(json.decode(chatData));
-    }
-
-    bool chatExists = conversations.any((chat) => chat["name"] == contactName);
-    if (!chatExists) {
-      conversations.add({
-        "name": contactName,
-        "lastMessage": "Nouvelle conversation",
-        "image": contact["image"] ?? "",
-      });
-    } else {
-      // Optionally update the conversation image in case it changed
-      for (var chat in conversations) {
-        if (chat["name"] == contactName) {
-          chat["image"] = contact["image"] ?? "";
-          break;
-        }
-      }
-    }
-    await prefs.setString('chats', json.encode(conversations));
-
+  // Use the contact's uid (receiverUID) to create/retrieve the proper chat.
+  void _startChat(Contact contact) async {
+    String receiverUID = contact.uid;
+    String chatId = await repository.createChat(receiverUID);
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ChatDetailScreen(chatId: contactName),
+        builder: (context) => ChatDetailScreen(chatId: chatId),
       ),
     );
   }
-
 
   void _changeProfilePicture(int index) async {
     showModalBottomSheet(
@@ -86,9 +58,14 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   await picker.pickImage(source: ImageSource.gallery);
                   if (pickedFile != null) {
                     setState(() {
-                      contacts[index]["image"] = pickedFile.path;
+                      contacts[index] = Contact(
+                        id: contacts[index].id,
+                        name: contacts[index].name,
+                        image: pickedFile.path,
+                        uid: contacts[index].uid,
+                      );
                     });
-                    _saveContacts();
+                    // Optionally, update Firestore with an update method.
                   }
                 },
               ),
@@ -108,7 +85,6 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   void _chooseStockPhoto(int index) {
-    // List of asset paths for stock photos
     final stockPhotos = [
       'assets/default1.png',
       'assets/default2.png',
@@ -135,9 +111,13 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 return GestureDetector(
                   onTap: () {
                     setState(() {
-                      contacts[index]["image"] = stockPhotos[photoIndex];
+                      contacts[index] = Contact(
+                        id: contacts[index].id,
+                        name: contacts[index].name,
+                        image: stockPhotos[photoIndex],
+                        uid: contacts[index].uid,
+                      );
                     });
-                    _saveContacts();
                     Navigator.pop(context);
                   },
                   child: Image.asset(stockPhotos[photoIndex]),
@@ -156,6 +136,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
     );
   }
 
+  // Add a new contact. Only ask for the contact's name.
   void _addContact() {
     TextEditingController nameController = TextEditingController();
 
@@ -180,16 +161,28 @@ class _ContactsScreenState extends State<ContactsScreen> {
             ),
             TextButton(
               child: Text("Ajouter"),
-              onPressed: () {
+              onPressed: () async {
                 if (nameController.text.isNotEmpty) {
-                  setState(() {
-                    contacts.add({
-                      "name": nameController.text,
-                      "image": "" // Initially no photo
-                    });
-                  });
-                  _saveContacts();
-                  Navigator.pop(context);
+                  // Create a contact with an empty uid (it will be auto-fetched)
+                  Contact newContact = Contact(
+                    name: nameController.text,
+                    image: "", // Initially no photo.
+                    uid: "",   // Leave empty; repository will fetch it.
+                  );
+                  try {
+                    await repository.addContact(newContact);
+                    Navigator.pop(context);
+                    _loadContacts();
+                  } catch (e) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(e.toString())),
+                    );
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Le nom ne peut pas être vide")),
+                  );
                 }
               },
             ),
@@ -199,11 +192,20 @@ class _ContactsScreenState extends State<ContactsScreen> {
     );
   }
 
-  void _deleteContact(int index) {
-    setState(() {
-      contacts.removeAt(index);
-    });
-    _saveContacts();
+
+  // Delete a contact from Firestore and update the UI.
+  void _deleteContact(int index) async {
+    Contact contactToDelete = contacts[index];
+    try {
+      await repository.deleteContact(contactToDelete.id);
+      setState(() {
+        contacts.removeAt(index);
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erreur lors de la suppression: $e")),
+      );
+    }
   }
 
   void _showContactOptions(int index) {
@@ -217,7 +219,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
               title: Text("Démarrer une conversation"),
               onTap: () {
                 Navigator.pop(context);
-                _startChat(contacts[index]);  // Pass the entire contact map
+                _startChat(contacts[index]);
               },
             ),
             ListTile(
@@ -230,7 +232,8 @@ class _ContactsScreenState extends State<ContactsScreen> {
             ),
             ListTile(
               leading: Icon(Icons.delete, color: Colors.red),
-              title: Text("Supprimer le contact", style: TextStyle(color: Colors.red)),
+              title: Text("Supprimer le contact",
+                  style: TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.pop(context);
                 _deleteContact(index);
@@ -241,7 +244,6 @@ class _ContactsScreenState extends State<ContactsScreen> {
       },
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -264,7 +266,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
           : ListView.builder(
         itemCount: contacts.length,
         itemBuilder: (context, index) {
-          String imagePath = contacts[index]["image"] ?? "";
+          String imagePath = contacts[index].image;
           return ListTile(
             leading: CircleAvatar(
               backgroundImage: imagePath.isNotEmpty
@@ -274,7 +276,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   : null,
               child: imagePath.isEmpty ? Icon(Icons.person) : null,
             ),
-            title: Text(contacts[index]["name"]!),
+            title: Text(contacts[index].name),
             onTap: () => _showContactOptions(index),
           );
         },

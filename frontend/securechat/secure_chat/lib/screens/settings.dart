@@ -20,9 +20,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _loadUserData() async {
+    // Ensure that LocalStorage.getUsername() uses a per-account key (e.g. "username_<uid>")
     String? savedName = await LocalStorage.getUsername();
     String? savedPhone = await LocalStorage.getPhoneNumber();
-
     setState(() {
       _username = savedName ?? "Unknown User";
       _phoneNumber = savedPhone ?? "Not Set";
@@ -30,15 +30,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _logout(BuildContext context) async {
-    // Sign out from Firebase authentication.
     await FirebaseAuth.instance.signOut();
-
-    // Do NOT clear contacts or conversation data, so they persist.
-    // final prefs = await SharedPreferences.getInstance();
-    // await prefs.remove('chats');
-    // await LocalStorage.clearContacts();
-
-    // Redirect to Walkthrough/Login screen.
     Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
   }
 
@@ -70,10 +62,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // User Profile Info
               Card(
                 elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: ListTile(
                   leading: Icon(Icons.person, color: Colors.blue),
-                  title: Text(_username ?? "Loading...", style: TextStyle(fontWeight: FontWeight.bold)),
+                  title: Text(
+                    _username ?? "Loading...",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   subtitle: Text("Phone: $_phoneNumber"),
                   trailing: IconButton(
                     icon: Icon(Icons.edit, color: Colors.blue),

@@ -3,14 +3,19 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
 
 class LocalStorage {
+  static String _usernameKey() {
+    String? uid = FirebaseAuth.instance.currentUser?.uid;
+    return uid != null ? 'username_$uid' : 'username';
+  }
+
   static Future<void> saveUsername(String username) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('username', username);
+    await prefs.setString(_usernameKey(), username);
   }
 
   static Future<String?> getUsername() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('username');
+    return prefs.getString(_usernameKey());
   }
 
   static Future<void> savePhoneNumber(String phoneNumber) async {
@@ -46,27 +51,26 @@ class LocalStorage {
   // Generate a unique key for contacts based on the current user's UID.
   static String _contactsKey() {
     String? uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
-      // If no user is signed in, you might throw an error or use a default key.
-      return 'contacts';
-    }
-    return 'contacts_$uid';
+    return uid != null ? 'contacts_$uid' : 'contacts';
   }
 
-  static Future<void> saveContacts(List<Map<String, String>> contacts) async {
+  static Future<void> saveContacts(List<Map<String, dynamic>> contacts) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_contactsKey(), json.encode(contacts));
   }
 
-  static Future<List<Map<String, String>>> getContacts() async {
+  static Future<List<Map<String, dynamic>>> getContacts() async {
     final prefs = await SharedPreferences.getInstance();
     String? contactData = prefs.getString(_contactsKey());
     if (contactData != null) {
       List<dynamic> decodedContacts = json.decode(contactData);
-      return decodedContacts.map((contact) => Map<String, String>.from(contact)).toList();
+      return decodedContacts
+          .map((contact) => Map<String, dynamic>.from(contact))
+          .toList();
     }
     return [];
   }
+
 
   static Future<void> clearContacts() async {
     final prefs = await SharedPreferences.getInstance();

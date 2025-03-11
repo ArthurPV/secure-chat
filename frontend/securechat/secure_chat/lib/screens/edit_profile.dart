@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../repositories/data_repository.dart'; // Adjust the import path as needed
+import '../utils/local_storage.dart';
 
 class EditProfileScreen extends StatefulWidget {
   @override
@@ -53,17 +54,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       });
       return;
     }
-
+    // Retrieve phone number from local storage.
+    String? phone = await LocalStorage.getPhoneNumber();
     var profile = UserProfile(
       username: name,
       profilePicture: _profilePicture ?? "",
+      phoneNumber: phone ?? "",
     );
-    await repository.updateUserProfile(profile);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Profil mis à jour!")),
-    );
-    Navigator.pop(context);
+    try {
+      await repository.updateUserProfile(profile);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Profil mis à jour!")),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    }
   }
 
   @override
