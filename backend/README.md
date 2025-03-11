@@ -1,24 +1,31 @@
-# README
+# secure-chat backend
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+## Getting started
 
-Things you may want to cover:
+### 1. Install docker
 
-* Ruby version
+- [Linux](https://docs.docker.com/desktop/setup/install/linux/)
+- [Mac](https://docs.docker.com/desktop/setup/install/mac-install/)
+- [Windows](https://docs.docker.com/desktop/setup/install/windows-install/)
 
-* System dependencies
+### 2. Build the containers
 
-* Configuration
+```sh
+# From the root directory of the repo:
+cd backend
+docker compose up
+# or to start the containers in background:
+# docker compose up -d
+```
 
-* Database creation
+### 3. Create the database
 
-* Database initialization
+```sh
+docker compose exec web bin/rails db:create
+docker compose exec web bin/rails db:schema:load
+docker compose exec web bin/rails db:seed
+```
 
-* How to run the test suite
+### 4. Access to the server
 
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+By default, the server is located at `http://localhost:3000`.
