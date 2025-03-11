@@ -1,5 +1,16 @@
 Rails.application.routes.draw do
-  devise_for :users
+  scope module: :auth do
+    devise_for :users, path: "auth", skip: :all
+  end
+
+  namespace :auth do
+    devise_scope :user do
+      post "sign_in", to: "authorization#create"
+      delete "sign_out", to: "authorization#destroy"
+      post "sign_up", to: "registrations#create"
+    end
+  end
+
   root "home#index"
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
