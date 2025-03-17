@@ -71,9 +71,28 @@ class LocalStorage {
     return [];
   }
 
-
   static Future<void> clearContacts() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_contactsKey());
+  }
+
+  // --- New methods for storing the private key ---
+
+  // Generate a unique key for storing the private key based on the current user's UID.
+  static String _privateKey() {
+    String? uid = FirebaseAuth.instance.currentUser?.uid;
+    return uid != null ? 'private_key_$uid' : 'private_key';
+  }
+
+  // Save the private key (as a PEM string) to local storage.
+  static Future<void> savePrivateKey(String privateKey) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_privateKey(), privateKey);
+  }
+
+  // Retrieve the private key from local storage.
+  static Future<String?> getPrivateKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_privateKey());
   }
 }
