@@ -1,6 +1,9 @@
+// lib/screens/edit_profile.dart
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../repositories/data_repository.dart'; // Adjust the import path as needed
-import '../utils/local_storage.dart';
+import '../repositories/data_repository.dart'; // Votre repository pour communiquer avec Firebase
+import '../utils/local_storage.dart';          // Pour sauvegarder les données localement
+import '../utils/crypto_utils.dart';           // Pour générer et chiffrer les clés RSA
 
 class EditProfileScreen extends StatefulWidget {
   @override
@@ -8,10 +11,11 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  // Create an instance of the repository.
   final DataRepository repository = FirebaseDataRepository();
 
+  // Contrôleurs pour le nom et le passphrase
   TextEditingController _nameController = TextEditingController();
+  TextEditingController _passphraseController = TextEditingController();
   String? _profilePicture;
   String _errorMessage = "";
   bool _isButtonEnabled = false;
@@ -22,7 +26,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _loadUserData();
   }
 
-  // Load the current profile using the repository.
+  // Charge les données du profil depuis Firebase
   void _loadUserData() async {
     var profile = await repository.getUserProfile();
     setState(() {
@@ -34,6 +38,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
   }
 
+  // Vérifie que le nom n'est pas vide
   void _validateInput(String value) {
     setState(() {
       if (value.trim().isEmpty) {
@@ -46,25 +51,59 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
   }
 
+  // Sauvegarde le profil et intègre la génération de clés RSA
   void _saveUserData() async {
     String name = _nameController.text.trim();
+    String passphrase = _passphraseController.text.trim();
+
+    // Vérifie que le nom et le passphrase sont renseignés
     if (name.isEmpty) {
       setState(() {
         _errorMessage = "Le nom ne peut pas être vide";
       });
       return;
     }
-    // Retrieve phone number from local storage.
+    if (passphrase.isEmpty) {
+      setState(() {
+        _errorMessage = "Un passphrase est requis pour sécuriser votre clé privée";
+      });
+      return;
+    }
+
+    // Récupère le numéro de téléphone stocké localement (déjà sauvegardé lors de la vérification)
     String? phone = await LocalStorage.getPhoneNumber();
+
+    // --- Étape 1 : Génération de la paire de clés RSA ---
+    // Cette fonction crée une clé publique et une clé privée.
+    final keyPair = generateRSAKeyPair();
+    // Pour l'instant, on convertit les clés en chaînes via .toString()
+    // (en production, vous devriez les encoder en format PEM).
+    String publicKeyStr = keyPair.publicKey.toString();
+    String privateKeyStr = keyPair.privateKey.toString();
+
+    // --- Étape 2 : Chiffrement de la clé privée ---
+    // On chiffre la clé privée avec le passphrase de l'utilisateur.
+    final encryptionResult = encryptPrivateKey(privateKeyStr, passphrase);
+    String encryptedPrivateKeyJson = jsonEncode(encryptionResult);
+
+    // --- Étape 3 : Sauvegarde locale de la clé privée chiffrée ---
+    // On enregistre la clé privée chiffrée sur l'appareil pour la récupérer plus tard.
+    await LocalStorage.savePrivateKey(encryptedPrivateKeyJson);
+
+    // --- Étape 4 : Mise à jour du profil sur Firebase ---
+    // On crée un objet profil incluant le nom, la photo, le numéro de téléphone
+    // et la clé publique, qui sera envoyée à Firebase.
     var profile = UserProfile(
       username: name,
       profilePicture: _profilePicture ?? "",
       phoneNumber: phone ?? "",
+      publicKey: publicKeyStr,  // La clé publique sera accessible par d'autres utilisateurs
     );
+
     try {
       await repository.updateUserProfile(profile);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Profil mis à jour!")),
+        SnackBar(content: Text("Profil sauvegardé!")),
       );
       Navigator.pop(context);
     } catch (e) {
@@ -90,11 +129,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Profile Picture Selection
+            // Sélection de la photo de profil
             GestureDetector(
               onTap: () {
                 setState(() {
-                  // Simulate image selection.
+                  // Ici, on simule la sélection d'une image.
                   _profilePicture = "https://placehold.co/100";
                 });
               },
@@ -109,7 +148,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
             SizedBox(height: 20),
-            // Name Input Field
+            // Champ de saisie pour le nom
             TextField(
               controller: _nameController,
               onChanged: _validateInput,
@@ -124,7 +163,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
             SizedBox(height: 20),
-            // Save Button
+            // Nouveau champ de saisie pour le passphrase
+            TextField(
+              controller: _passphraseController,
+              decoration: InputDecoration(
+                labelText: "Entrez un passphrase pour votre clé privée",
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                errorText: _errorMessage.isNotEmpty ? _errorMessage : null,
+              ),
+              obscureText: true,
+            ),
+            SizedBox(height: 20),
+            // Bouton de sauvegarde
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

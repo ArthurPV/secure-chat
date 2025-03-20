@@ -1,8 +1,14 @@
+// lib/screens/profile.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:basic_utils/basic_utils.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../repositories/data_repository.dart';
 import '../utils/local_storage.dart';
 import '../utils/crypto_utils.dart';
+import '../utils/sercure_store.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -13,10 +19,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final DataRepository repository = FirebaseDataRepository();
 
   TextEditingController _nameController = TextEditingController();
-  TextEditingController _passphraseController = TextEditingController(); // New controller for passphrase
+  TextEditingController _passphraseController = TextEditingController();
   String? _profilePicture;
   String? _errorMessage;
-  bool _isButtonEnabled = true;
 
   @override
   void initState() {
@@ -24,157 +29,128 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadUserData();
   }
 
-  // Load profile data using the repository.
   void _loadUserData() async {
-    var profile = await repository.getUserProfile();
-    setState(() {
-      if (profile != null) {
+    final profile = await repository.getUserProfile();
+    if (profile != null) {
+      setState(() {
         _nameController.text = profile.username;
         _profilePicture = profile.profilePicture;
-      }
-    });
+      });
+    }
   }
 
-  void _saveUserData() async {
-    String name = _nameController.text.trim();
-    String passphrase = _passphraseController.text.trim();
-
+  Future<void> _saveUserData() async {
+    final name = _nameController.text.trim();
+    final passphrase = _passphraseController.text.trim();
     if (name.isEmpty) {
-      setState(() {
-        _errorMessage = "Le nom ne peut pas être vide";
-      });
+      setState(() => _errorMessage = "Name cannot be empty");
       return;
     }
     if (passphrase.isEmpty) {
-      setState(() {
-        _errorMessage = "Un passphrase est requis pour sécuriser votre clé privée";
-      });
+      setState(() => _errorMessage = "Passphrase cannot be empty");
       return;
     }
 
-    // Retrieve phone number from local storage.
-    String? phone = await LocalStorage.getPhoneNumber();
-    var profile = UserProfile(
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      setState(() => _errorMessage = "No authenticated user found.");
+      return;
+    }
+
+    // 1) Check if we already have a local private key for this user.
+    final existingKey = await LocalStorage.getPrivateKeyForUid(uid);
+    if (existingKey != null) {
+      // Key already exists; we skip new generation.
+      print("DEBUG: A private key for this UID already exists. Skipping new generation.");
+
+      // Save the passphrase even if a key exists so that decryption can work.
+      await SecureStore.savePassphraseForUid(uid, passphrase);
+
+      // Retrieve the existing public key from Firestore to avoid overwriting it with an empty string.
+      String existingPublicKey = "";
+      final userDoc = await FirebaseFirestore.instance.collection('usernames').doc(name).get();
+      if (userDoc.exists) {
+        Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
+        existingPublicKey = data['publicKey'] ?? "";
+      }
+      await _updateFirestoreProfile(name, passphrase, isKeyAlreadyPresent: true, publicKeyPem: existingPublicKey);
+      return;
+    }
+
+    // 2) If no existing key, generate a new key pair.
+    final keyPair = generateRSAKeyPair();
+    final publicKeyPem = CryptoUtils.encodeRSAPublicKeyToPem(keyPair.publicKey);
+    final privateKeyPem = CryptoUtils.encodeRSAPrivateKeyToPem(keyPair.privateKey);
+
+    // 3) Encrypt the private key with the passphrase.
+    final encResult = encryptPrivateKey(privateKeyPem, passphrase);
+    final encPrivateKeyJson = jsonEncode(encResult);
+
+    // 4) Save passphrase and encrypted key.
+    await SecureStore.savePassphraseForUid(uid, passphrase);
+    await LocalStorage.savePrivateKeyForUid(uid, encPrivateKeyJson);
+
+    // 5) Write public key to Firestore.
+    await _updateFirestoreProfile(name, passphrase, publicKeyPem: publicKeyPem);
+  }
+
+  // Helper to write profile details to Firestore.
+  Future<void> _updateFirestoreProfile(
+      String name,
+      String passphrase, {
+        bool isKeyAlreadyPresent = false,
+        String publicKeyPem = "",
+      }) async {
+    final phone = await LocalStorage.getPhoneNumber() ?? "";
+    final profile = UserProfile(
       username: name,
       profilePicture: _profilePicture ?? "",
-      phoneNumber: phone ?? "",
+      phoneNumber: phone,
+      publicKey: publicKeyPem, // Will be non-empty if key is new or preserved.
     );
 
     try {
-      // Generate an RSA key pair.
-      final keyPair = generateRSAKeyPair();
-      // For demonstration purposes, we simply convert the private key to string.
-      // In a real-world scenario, you'll want to properly encode it as PEM.
-      String privateKeyStr = keyPair.privateKey.toString();
-
-      // Encrypt the private key with the passphrase.
-      final encryptionResult = encryptPrivateKey(privateKeyStr, passphrase);
-
-      // Save the encrypted private key (as a JSON string) in local storage.
-      String encryptedPrivateKeyJson = jsonEncode(encryptionResult);
-      await LocalStorage.savePrivateKey(encryptedPrivateKeyJson);
-
-      // Save the profile via your repository.
       await repository.updateUserProfile(profile);
-
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Profil sauvegardé!")),
+        SnackBar(content: Text(isKeyAlreadyPresent
+            ? "Profile updated without generating a new key."
+            : "Profile & key saved!")),
       );
       Future.delayed(Duration(seconds: 1), () {
         Navigator.pushReplacementNamed(context, '/main');
       });
     } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-      });
+      setState(() => _errorMessage = e.toString());
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text("Votre Profil"),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: IconThemeData(color: Colors.black),
       ),
-      body: Container(
-        padding: EdgeInsets.all(16),
-        color: Colors.white,
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Profile Picture Selection
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  // Simulate image selection.
-                  _profilePicture = "https://placehold.co/100";
-                });
-              },
-              child: CircleAvatar(
-                radius: 50,
-                backgroundImage: _profilePicture != null
-                    ? NetworkImage(_profilePicture!)
-                    : null,
-                child: _profilePicture == null
-                    ? Icon(Icons.person, size: 50, color: Colors.grey)
-                    : null,
-              ),
-            ),
-            SizedBox(height: 20),
-            // Name Input Field
             TextField(
               controller: _nameController,
               decoration: InputDecoration(
                 labelText: "Entrez votre nom",
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
                 errorText: _errorMessage,
               ),
             ),
-            SizedBox(height: 20),
-            // Passphrase Input Field
             TextField(
               controller: _passphraseController,
               decoration: InputDecoration(
-                labelText: "Entrez un passphrase pour votre clé privée",
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                errorText: _errorMessage,
+                labelText: "Passphrase pour clé privée",
               ),
               obscureText: true,
             ),
-            SizedBox(height: 20),
-            // Save Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isButtonEnabled ? _saveUserData : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _isButtonEnabled ? Color(0xFF4B00FA) : Colors.grey,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: Text(
-                  "Enregistrer",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
+            ElevatedButton(
+              onPressed: _saveUserData,
+              child: Text("Enregistrer"),
             ),
           ],
         ),

@@ -6,6 +6,7 @@ buildscript {
     dependencies {
         // Use Kotlin DSL syntax for classpath dependency.
         classpath("com.google.gms:google-services:4.3.15")
+        classpath("com.android.tools.build:gradle:8.3.0-alpha09")
     }
 }
 
