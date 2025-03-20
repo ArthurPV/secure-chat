@@ -1,7 +1,9 @@
+// lib/screens/settings.dart
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_auth/firebase_auth.dart';  // Import Firebase Auth
+import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/local_storage.dart';
+import '../utils/sercure_store.dart';
 import 'edit_profile.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -20,7 +22,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _loadUserData() async {
-    // Ensure that LocalStorage.getUsername() uses a per-account key (e.g. "username_<uid>")
     String? savedName = await LocalStorage.getUsername();
     String? savedPhone = await LocalStorage.getPhoneNumber();
     setState(() {
@@ -29,7 +30,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
+  /// Logs out the current Firebase user. Note: The private key is preserved so that the user can re-use it on subsequent logins.
   void _logout(BuildContext context) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final uid = currentUser?.uid;
+
+    if (uid != null) {
+      // Remove the user's passphrase from Secure Storage
+      await SecureStore.clearPassphraseForUid(uid);
+
+      // Do not clear the user's private key so that it persists across logins.
+      // await LocalStorage.clearUserData(uid);
+    }
+
     await FirebaseAuth.instance.signOut();
     Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
   }
@@ -59,7 +72,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           padding: EdgeInsets.all(16),
           child: Column(
             children: [
-              // User Profile Info
               Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
@@ -80,7 +92,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               SizedBox(height: 20),
               Divider(),
-              // Logout Button
               ListTile(
                 leading: Icon(Icons.logout, color: Colors.red),
                 title: Text("Déconnexion", style: TextStyle(color: Colors.red)),
