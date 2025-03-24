@@ -16,13 +16,15 @@ class UserProfile {
   final String username;
   final String profilePicture;
   final String phoneNumber;
-  final String publicKey; // Clé publique de l'utilisateur
+  final String publicKey; //
+  final String privateKeyBackup;
 
   UserProfile({
     required this.username,
     required this.profilePicture,
     required this.phoneNumber,
     required this.publicKey,
+    this.privateKeyBackup = "",
   });
 
   Map<String, dynamic> toMap() {
@@ -40,6 +42,7 @@ class UserProfile {
       profilePicture: map['profilePicture'] as String,
       phoneNumber: map['phoneNumber'] as String,
       publicKey: map['publicKey'] as String? ?? "",
+      privateKeyBackup: map['privateKeyBackup'] as String? ?? "",
     );
   }
 }
@@ -165,7 +168,8 @@ class FirebaseDataRepository implements DataRepository {
       'username': profile.username,
       'phoneNumber': profile.phoneNumber,
       'profilePicture': profile.profilePicture,
-      'publicKey': profile.publicKey, // Enregistre la clé publique ici.
+      'publicKey': profile.publicKey,
+      'privateKeyBackup': profile.privateKeyBackup ?? "", // NEW backup field
       'updatedAt': DateTime.now().toIso8601String(),
     });
     await LocalStorage.saveUsername(profile.username);
