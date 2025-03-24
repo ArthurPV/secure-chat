@@ -22,7 +22,10 @@ class MessagesController < ApplicationController
   private
 
   def message_params
-    params.require(:message).permit(:content, :conversation)
+    params
+      .require(:message)
+      .permit(:content, :conversation_uuid)
+      .merge({ user_id: Current.user.id })
   end
 
   def set_entity
