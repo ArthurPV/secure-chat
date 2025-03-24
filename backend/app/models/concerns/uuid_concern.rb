@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module UuidConcerns
+module UuidConcern
   extend ActiveSupport::Concern
 
   def initialize(attributes = {})

@@ -2,5 +2,5 @@ class UserKey < ApplicationRecord
   encrypts :public_key
   encrypts :private_key
 
-  belongs_to :conversation
+  belongs_to :user_conversation
 end

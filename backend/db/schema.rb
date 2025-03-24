@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_03_24_093119) do
+ActiveRecord::Schema[7.2].define(version: 2025_03_24_122012) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -20,14 +20,15 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_24_093119) do
     t.datetime "updated_at", null: false
     t.text "content", null: false
     t.bigint "user_conversation_id", null: false
+    t.bigint "user_id", null: false
     t.index ["user_conversation_id"], name: "index_messages_on_user_conversation_id"
+    t.index ["user_id"], name: "index_messages_on_user_id"
   end
 
   create_table "user_conversations", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_key_id", default: 0
-    t.index ["user_key_id"], name: "index_user_conversations_on_user_key_id"
+    t.uuid "uuid", default: -> { "gen_random_uuid()" }, null: false
   end
 
   create_table "user_conversations_users", id: false, force: :cascade do |t|
@@ -50,6 +51,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_24_093119) do
     t.datetime "updated_at", null: false
     t.string "public_key", null: false
     t.string "private_key", null: false
+    t.bigint "user_conversation_id", null: false
+    t.index ["user_conversation_id"], name: "index_user_keys_on_user_conversation_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -66,6 +69,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_24_093119) do
   end
 
   add_foreign_key "messages", "user_conversations"
-  add_foreign_key "user_conversations", "user_keys"
+  add_foreign_key "messages", "users"
   add_foreign_key "user_jtis", "users"
+  add_foreign_key "user_keys", "user_conversations"
 end

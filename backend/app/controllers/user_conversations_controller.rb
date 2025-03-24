@@ -1,4 +1,6 @@
-class UserConversations < ApplicationController
+# frozen_string_literal: true
+
+class UserConversationsController < ApplicationController
   def create
     if UserConversation.create(user_conversation_params)
       head :no_content

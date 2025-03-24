@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
 class UserConversation < ApplicationRecord
+  include UuidConcern
+
   attr_accessor :public_key, :private_key
   attr_accessor :participants
 
   has_and_belongs_to_many :users
-  has_one :user_key
-  has_many :messages
+  has_one :user_key, autosave: true, dependent: :destroy
+  has_many :messages, dependent: :destroy
 
   validates :public_key, presence: true, on: :create
   validates :private_key, presence: true, on: :create
