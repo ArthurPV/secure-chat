@@ -10,9 +10,30 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_03_06_004654) do
+ActiveRecord::Schema[7.2].define(version: 2025_03_24_090838) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "messages", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.text "content", null: false
+    t.bigint "user_conversation_id", null: false
+    t.index ["user_conversation_id"], name: "index_messages_on_user_conversation_id"
+  end
+
+  create_table "user_conversations", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_key_id", default: 0
+    t.index ["user_key_id"], name: "index_user_conversations_on_user_key_id"
+  end
+
+  create_table "user_conversations_users", id: false, force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "user_conversation_id", null: false
+    t.index ["user_id", "user_conversation_id"], name: "idx_on_user_id_user_conversation_id_a9cca56b72"
+  end
 
   create_table "user_jtis", force: :cascade do |t|
     t.datetime "created_at", null: false
@@ -21,6 +42,13 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_06_004654) do
     t.bigint "user_id", null: false
     t.index ["jti"], name: "index_user_jtis_on_jti", unique: true
     t.index ["user_id"], name: "index_user_jtis_on_user_id"
+  end
+
+  create_table "user_keys", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "public_key", null: false
+    t.string "private_key", null: false
   end
 
   create_table "users", force: :cascade do |t|
@@ -35,5 +63,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_06_004654) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "messages", "user_conversations"
+  add_foreign_key "user_conversations", "user_keys"
   add_foreign_key "user_jtis", "users"
 end
