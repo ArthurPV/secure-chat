@@ -1,7 +1,7 @@
 class MessagesController < ApplicationController
   include EntityConcern
 
-  before_action :set_entity, only: %i[show destroy]
+  before_action :set_entity, only: %i[destroy]
 
   def create
     if Message.create(message_params)
@@ -22,7 +22,8 @@ class MessagesController < ApplicationController
   private
 
   def message_params
-    allowed_params
+    params
+      .require(:message)
       .permit(:content, :conversation_uuid)
       .merge({ user_id: Current.user.id })
   end
