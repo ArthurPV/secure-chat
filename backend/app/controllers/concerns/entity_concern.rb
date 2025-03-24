@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module EntityConcerns
+module EntityConcern
   extend ActiveSupport::Concern
 
   private
