@@ -20,7 +20,7 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   resources :messages, only: %i[create destroy], param: :uuid
-  resources :conversations, only: %i[create], param: :uuid
+  resources :user_conversations, only: %i[create], param: :uuid
 
   # Defines the root path route ("/")
   # root "posts#index"

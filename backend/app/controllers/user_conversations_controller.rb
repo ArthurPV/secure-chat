@@ -12,6 +12,7 @@ class UserConversationsController < ApplicationController
   private
 
   def user_conversation_params
-    params.require(:message).permit(:public_key, :private_key, :participants)
+    allowed_items = %i[public_key private_key] + [ { participants: [] } ]
+    params.require(:user_conversation).permit(*allowed_items)
   end
 end
