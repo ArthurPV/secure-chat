@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/crypto_utils.dart';
@@ -26,32 +27,44 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
     }
   }
 
-  // Attempt to see if we can decrypt the local private key
-  // for the *current* (just-logged-in) Firebase user.
-  // If we can, that means we already have a valid key => skip profile setup.
   Future<bool> canDecryptLocalKey() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return false;
 
-    // 1) Retrieve the user’s encrypted private key
     final encPrivKey = await LocalStorage.getPrivateKeyForUid(uid);
-    if (encPrivKey == null) {
-      return false;
-    }
-
-    // 2) Retrieve passphrase from SecureStore
-    final pass = await SecureStore.getPassphraseForUid(uid);
-    if (pass == null) {
-      return false;
-    }
-
-    // 3) Attempt to decrypt
-    try {
-      final privObj = jsonDecode(encPrivKey);
-      final decryptedPem = decryptPrivateKey(privObj['encrypted'], privObj['iv'], pass);
-      // If it doesn’t throw an exception => success
-      return true;
-    } catch (e) {
+    if (encPrivKey != null) {
+      final pass = await SecureStore.getPassphraseForUid(uid);
+      if (pass == null) return false;
+      try {
+        final privObj = jsonDecode(encPrivKey);
+        decryptPrivateKey(privObj['encrypted'], privObj['iv'], pass);
+        return true;
+      } catch (e) {
+        // Decryption failed, likely due to wrong passphrase.
+        return false;
+      }
+    } else {
+      // No local key: check Firestore backup.
+      final username = await LocalStorage.getUsername();
+      if (username == null || username.isEmpty) return false;
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('usernames').doc(username).get();
+      if (userDoc.exists) {
+        Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
+        String? backup = data['privateKeyBackup'];
+        if (backup != null && backup.isNotEmpty) {
+          // Save the backup locally.
+          await LocalStorage.savePrivateKeyForUid(uid, backup);
+          final pass = await SecureStore.getPassphraseForUid(uid);
+          if (pass == null) return false;
+          try {
+            final privObj = jsonDecode(backup);
+            decryptPrivateKey(privObj['encrypted'], privObj['iv'], pass);
+            return true;
+          } catch (e) {
+            return false;
+          }
+        }
+      }
       return false;
     }
   }
@@ -75,20 +88,15 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
       );
       await FirebaseAuth.instance.signInWithCredential(credential);
 
-      // After successful sign-in, see if we can decrypt local key
-      bool canDecrypt = await canDecryptLocalKey();
-      if (canDecrypt) {
-        // We already have a valid local key => skip profile
-        Navigator.pushReplacementNamed(context, '/main');
-      } else {
-        // We have no local key or can't decrypt => go to profile
-        Navigator.pushReplacementNamed(context, '/profile');
-      }
-
+      // Instead of checking decryption here, always navigate to the profile page.
+      Navigator.pushReplacementNamed(context, '/profile');
     } catch (e) {
       setState(() => _errorMessage = "Code invalide, veuillez réessayer.");
     }
   }
+
+
+
 
   @override
   Widget build(BuildContext context) {

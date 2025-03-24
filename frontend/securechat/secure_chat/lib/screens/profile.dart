@@ -43,78 +43,111 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final name = _nameController.text.trim();
     final passphrase = _passphraseController.text.trim();
     if (name.isEmpty) {
-      setState(() => _errorMessage = "Name cannot be empty");
+      setState(() => _errorMessage = "Le nom ne peut pas être vide");
       return;
     }
     if (passphrase.isEmpty) {
-      setState(() => _errorMessage = "Passphrase cannot be empty");
+      setState(() => _errorMessage = "La passphrase ne peut pas être vide");
       return;
     }
 
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      setState(() => _errorMessage = "No authenticated user found.");
+      setState(() => _errorMessage = "Aucun utilisateur authentifié trouvé.");
       return;
     }
 
-    // 1) Check if we already have a local private key for this user.
+    // Vérifie si une clé privée existe déjà en local.
     final existingKey = await LocalStorage.getPrivateKeyForUid(uid);
     if (existingKey != null) {
-      // Key already exists; we skip new generation.
-      print("DEBUG: A private key for this UID already exists. Skipping new generation.");
-
-      // Save the passphrase even if a key exists so that decryption can work.
+      print("DEBUG: Une clé privée pour cet UID existe déjà. On ne régénère pas la clé.");
+      // Attempt to decrypt the stored private key using the provided passphrase.
+      try {
+        final privObj = jsonDecode(existingKey);
+        decryptPrivateKey(privObj['encrypted'], privObj['iv'], passphrase);
+      } catch (e) {
+        setState(() => _errorMessage = "Passphrase incorrecte, veuillez réessayer.");
+        return;
+      }
+      // If decryption is successful, save the passphrase.
       await SecureStore.savePassphraseForUid(uid, passphrase);
-
-      // Retrieve the existing public key from Firestore to avoid overwriting it with an empty string.
+      // Retrieve existing public key from Firestore to avoid overwriting.
       String existingPublicKey = "";
       final userDoc = await FirebaseFirestore.instance.collection('usernames').doc(name).get();
       if (userDoc.exists) {
         Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
         existingPublicKey = data['publicKey'] ?? "";
       }
-      await _updateFirestoreProfile(name, passphrase, isKeyAlreadyPresent: true, publicKeyPem: existingPublicKey);
+      // Update Firestore while preserving the local backup.
+      await _updateFirestoreProfile(name, passphrase,
+          isKeyAlreadyPresent: true,
+          publicKeyPem: existingPublicKey,
+          privateKeyBackup: existingKey);
       return;
+    } else {
+      // Si aucune clé n'existe localement, tente de récupérer le backup depuis Firestore.
+      final userDoc = await FirebaseFirestore.instance.collection('usernames').doc(name).get();
+      if (userDoc.exists) {
+        Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
+        String? backup = data['privateKeyBackup'];
+        if (backup != null && backup.isNotEmpty) {
+          // Sauvegarde le backup localement.
+          await LocalStorage.savePrivateKeyForUid(uid, backup);
+          try {
+            final privObj = jsonDecode(backup);
+            decryptPrivateKey(privObj['encrypted'], privObj['iv'], passphrase);
+          } catch (e) {
+            setState(() => _errorMessage = "Passphrase incorrecte, veuillez réessayer.");
+            return;
+          }
+          await SecureStore.savePassphraseForUid(uid, passphrase);
+          String existingPublicKey = data['publicKey'] ?? "";
+          await _updateFirestoreProfile(name, passphrase,
+              isKeyAlreadyPresent: true,
+              publicKeyPem: existingPublicKey,
+              privateKeyBackup: backup);
+          return;
+        }
+      }
     }
 
-    // 2) If no existing key, generate a new key pair.
+    // Aucune clé locale ou backup trouvée: on génère une nouvelle paire RSA.
     final keyPair = generateRSAKeyPair();
     final publicKeyPem = CryptoUtils.encodeRSAPublicKeyToPem(keyPair.publicKey);
     final privateKeyPem = CryptoUtils.encodeRSAPrivateKeyToPem(keyPair.privateKey);
 
-    // 3) Encrypt the private key with the passphrase.
+    // Crypte la clé privée avec la passphrase.
     final encResult = encryptPrivateKey(privateKeyPem, passphrase);
     final encPrivateKeyJson = jsonEncode(encResult);
 
-    // 4) Save passphrase and encrypted key.
+    // Sauvegarde localement la passphrase et la clé privée cryptée.
     await SecureStore.savePassphraseForUid(uid, passphrase);
     await LocalStorage.savePrivateKeyForUid(uid, encPrivateKeyJson);
 
-    // 5) Write public key to Firestore.
-    await _updateFirestoreProfile(name, passphrase, publicKeyPem: publicKeyPem);
+    // Met à jour Firestore en envoyant la clé publique et la sauvegarde de la clé privée.
+    await _updateFirestoreProfile(name, passphrase,
+        publicKeyPem: publicKeyPem, privateKeyBackup: encPrivateKeyJson);
   }
 
-  // Helper to write profile details to Firestore.
-  Future<void> _updateFirestoreProfile(
-      String name,
-      String passphrase, {
-        bool isKeyAlreadyPresent = false,
-        String publicKeyPem = "",
-      }) async {
+  // Met à jour le profil dans Firestore en incluant le backup de la clé privée.
+  Future<void> _updateFirestoreProfile(String name, String passphrase,
+      {bool isKeyAlreadyPresent = false, String publicKeyPem = "", String privateKeyBackup = ""}) async {
     final phone = await LocalStorage.getPhoneNumber() ?? "";
     final profile = UserProfile(
       username: name,
       profilePicture: _profilePicture ?? "",
       phoneNumber: phone,
-      publicKey: publicKeyPem, // Will be non-empty if key is new or preserved.
+      publicKey: publicKeyPem,
+      privateKeyBackup: privateKeyBackup,
     );
 
     try {
       await repository.updateUserProfile(profile);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(isKeyAlreadyPresent
-            ? "Profile updated without generating a new key."
-            : "Profile & key saved!")),
+        SnackBar(
+            content: Text(isKeyAlreadyPresent
+                ? "Profil mis à jour sans générer une nouvelle clé."
+                : "Profil et clé sauvegardés !")),
       );
       Future.delayed(Duration(seconds: 1), () {
         Navigator.pushReplacementNamed(context, '/main');
