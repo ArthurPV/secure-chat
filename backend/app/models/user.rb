@@ -22,7 +22,7 @@ class User < ApplicationRecord
   validates :private_key, presence: true, on: :create
   validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :uuid, presence: true, uniqueness: true
-  validates :username, presence: true, uniqueness: true, format: { with: /\A[a-zA-Z0-9]+\Z/ }
+  validates :username, presence: true, uniqueness: true, format: { with: /\A[a-zA-Z0-9_]+\Z/ }
   validates :phone_number, presence: true, uniqueness: true, format: { with: /\A[0-9]{10}\Z/ }
 
   before_create :create_user_key

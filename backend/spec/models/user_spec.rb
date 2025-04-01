@@ -15,9 +15,9 @@ RSpec.describe User, type: :model do
         end
 
         it 'unique' do
-          User.create!(email: 'user@localdev.me', password: 'password', username: 'xyz', phone_number: '1234567890')
+          user = Fabricate(:user)
 
-          expect(User.create(email: 'user@localdev.me').errors.full_messages).to include("Email has already been taken")
+          expect(User.create(email: user.email).errors.full_messages).to include("Email has already been taken")
         end
       end
 
@@ -33,9 +33,9 @@ RSpec.describe User, type: :model do
         end
 
         it 'unique' do
-          User.create!(email: 'user@localdev.me', password: 'password', username: 'xyz', phone_number: '1234567890')
+          user = Fabricate(:user)
 
-          expect(User.create(username: 'xyz').errors.full_messages).to include("Username has already been taken")
+          expect(User.create(username: user.username).errors.full_messages).to include("Username has already been taken")
         end
       end
 
@@ -49,10 +49,32 @@ RSpec.describe User, type: :model do
         end
 
         it 'unique' do
-          user = User.create!(email: 'user@localdev.me', password: 'password', username: 'xyz', phone_number: '1234567890')
+          user = Fabricate(:user)
 
-          expect(User.create(phone_number: '1234567890').errors.full_messages).to include("Phone number has already been taken")
+          expect(User.create(phone_number: user.phone_number).errors.full_messages).to include("Phone number has already been taken")
         end
+
+        context 'public_key' do
+          it 'required' do
+            expect(User.create(public_key: nil).errors.full_messages).to include("Public key can't be blank")
+          end
+        end
+
+        context 'private_key' do
+          it 'required' do
+            expect(User.create(private_key: nil).errors.full_messages).to include("Private key can't be blank")
+          end
+        end
+      end
+    end
+  end
+
+  describe 'callbacks' do
+    context 'create_user_key' do
+      it 'create user_key' do
+        user = User.create!(email: 'user10@localdev.me', password: 'password', username: 'xyz10', phone_number: '1234777777', public_key: 'x', private_key: 'y')
+
+        expect(user.user_key).to be_present
       end
     end
   end
