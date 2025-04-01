@@ -18,3 +18,4 @@ Here is a list of resources that are available in the API:
 - [auth/Registration](resources/auth/registration.md)
 - [Messages](resources/messages.md)
 - [UserConversations](resources/user_conversations.md)
+- [users/UploadProfilePictures](resources/users/upload_profile_pictures.md)

@@ -8,7 +8,9 @@ class Users::UploadProfilePicturesController < Users::BaseController
   end
 
   def destroy
-    if Current.user.profile_picture.purge
+    if Current.user.profile_picture.attached?
+      Current.user.profile_picture.purge
+
       head :no_content
     else
       head :unprocessable_entity
