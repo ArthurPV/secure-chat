@@ -1,10 +1,11 @@
+// lib/screens/contacts.dart
 import 'dart:io';
-import 'dart:convert'; // For JSON encoding/decoding
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // For SharedPreferences
 import 'package:image_picker/image_picker.dart';
-import '../utils/local_storage.dart';
-import 'chat_detail.dart'; // Import the ChatDetailScreen
+import '../repositories/data_repository.dart';
+import 'chat_detail.dart';
 
 class ContactsScreen extends StatefulWidget {
   @override
@@ -12,7 +13,8 @@ class ContactsScreen extends StatefulWidget {
 }
 
 class _ContactsScreenState extends State<ContactsScreen> {
-  List<Map<String, String>> contacts = [];
+  final DataRepository repository = FirebaseDataRepository();
+  List<Contact> contacts = [];
 
   @override
   void initState() {
@@ -21,261 +23,177 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   Future<void> _loadContacts() async {
-    List<Map<String, String>> savedContacts = await LocalStorage.getContacts();
-    setState(() {
-      contacts = savedContacts;
-    });
+    List<Contact> fetched = await repository.fetchContacts();
+    setState(() => contacts = fetched);
   }
 
-  Future<void> _saveContacts() async {
-    await LocalStorage.saveContacts(contacts);
-  }
-
-  void _startChat(Map<String, String> contact) async {
-    String contactName = contact["name"]!;
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? chatData = prefs.getString('chats');
-    List<Map<String, dynamic>> conversations = [];
-
-    if (chatData != null) {
-      conversations = List<Map<String, dynamic>>.from(json.decode(chatData));
-    }
-
-    bool chatExists = conversations.any((chat) => chat["name"] == contactName);
-    if (!chatExists) {
-      conversations.add({
-        "name": contactName,
-        "lastMessage": "Nouvelle conversation",
-        "image": contact["image"] ?? "",
-      });
-    } else {
-      // Optionally update the conversation image in case it changed
-      for (var chat in conversations) {
-        if (chat["name"] == contactName) {
-          chat["image"] = contact["image"] ?? "";
-          break;
-        }
-      }
-    }
-    await prefs.setString('chats', json.encode(conversations));
-
+  void _startChat(Contact c) async {
+    String receiverUsername = c.name;
+    String chatId = await repository.createChat(receiverUsername);
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => ChatDetailScreen(contactName: contactName),
-      ),
+      MaterialPageRoute(builder: (context) => ChatDetailScreen(chatId: chatId)),
     );
   }
-
 
   void _changeProfilePicture(int index) async {
     showModalBottomSheet(
       context: context,
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(Icons.photo_library),
-                title: Text("Importer depuis la galerie"),
-                onTap: () async {
-                  Navigator.pop(context);
-                  final picker = ImagePicker();
-                  final pickedFile =
-                  await picker.pickImage(source: ImageSource.gallery);
-                  if (pickedFile != null) {
-                    setState(() {
-                      contacts[index]["image"] = pickedFile.path;
-                    });
-                    _saveContacts();
-                  }
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.photo),
-                title: Text("Choisir une image stock"),
-                onTap: () {
-                  Navigator.pop(context);
-                  _chooseStockPhoto(index);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _chooseStockPhoto(int index) {
-    // List of asset paths for stock photos
-    final stockPhotos = [
-      'assets/default1.png',
-      'assets/default2.png',
-      'assets/default3.png',
-      'assets/default4.png',
-    ];
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text("Choisissez une image"),
-          content: Container(
-            width: double.maxFinite,
-            child: GridView.builder(
-              shrinkWrap: true,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-              ),
-              itemCount: stockPhotos.length,
-              itemBuilder: (context, photoIndex) {
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      contacts[index]["image"] = stockPhotos[photoIndex];
-                    });
-                    _saveContacts();
-                    Navigator.pop(context);
-                  },
-                  child: Image.asset(stockPhotos[photoIndex]),
-                );
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.photo_library),
+              title: Text("Choisir depuis la galerie"),
+              onTap: () async {
+                Navigator.pop(context);
+                final picker = ImagePicker();
+                final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                if (pickedFile != null) {
+                  setState(() {
+                    contacts[index] = Contact(
+                      id: contacts[index].id,
+                      name: contacts[index].name,
+                      image: pickedFile.path,
+                      uid: contacts[index].uid,
+                    );
+                  });
+                }
               },
             ),
-          ),
-          actions: [
-            TextButton(
-              child: Text("Annuler"),
-              onPressed: () => Navigator.pop(context),
+            ListTile(
+              leading: Icon(Icons.photo),
+              title: Text("Choisir une photo par défaut"),
+              onTap: () {
+                Navigator.pop(context);
+                // Approche similaire pour sélectionner une image stockée.
+              },
             ),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 
   void _addContact() {
-    TextEditingController nameController = TextEditingController();
-
+    TextEditingController nameCtrl = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text("Ajouter un contact"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(labelText: "Nom"),
-              ),
-            ],
+      builder: (_) => AlertDialog(
+        title: Text("Ajouter un contact"),
+        content: TextField(
+          controller: nameCtrl,
+          decoration: InputDecoration(labelText: "Nom"),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Annuler"),
           ),
-          actions: [
-            TextButton(
-              child: Text("Annuler"),
-              onPressed: () => Navigator.pop(context),
-            ),
-            TextButton(
-              child: Text("Ajouter"),
-              onPressed: () {
-                if (nameController.text.isNotEmpty) {
-                  setState(() {
-                    contacts.add({
-                      "name": nameController.text,
-                      "image": "" // Initially no photo
-                    });
-                  });
-                  _saveContacts();
-                  Navigator.pop(context);
-                }
-              },
-            ),
-          ],
-        );
-      },
+          TextButton(
+            onPressed: () async {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) {
+                Navigator.pop(context);
+                return;
+              }
+              final newC = Contact(name: name, image: "", uid: "");
+              try {
+                await repository.addContact(newC);
+                Navigator.pop(context);
+                _loadContacts();
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("$e")),
+                );
+              }
+            },
+            child: Text("Ajouter"),
+          ),
+        ],
+      ),
     );
   }
 
-  void _deleteContact(int index) {
-    setState(() {
-      contacts.removeAt(index);
-    });
-    _saveContacts();
+  void _deleteContact(int index) async {
+    Contact c = contacts[index];
+    try {
+      await repository.deleteContact(c.id);
+      setState(() {
+        contacts.removeAt(index);
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erreur : $e")),
+      );
+    }
   }
 
-  void _showContactOptions(int index) {
+  void _showOptions(int index) {
     showModalBottomSheet(
       context: context,
-      builder: (context) {
-        return Wrap(
-          children: [
-            ListTile(
-              leading: Icon(Icons.chat),
-              title: Text("Démarrer une conversation"),
-              onTap: () {
-                Navigator.pop(context);
-                _startChat(contacts[index]);  // Pass the entire contact map
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.image),
-              title: Text("Modifier la photo"),
-              onTap: () {
-                Navigator.pop(context);
-                _changeProfilePicture(index);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.delete, color: Colors.red),
-              title: Text("Supprimer le contact", style: TextStyle(color: Colors.red)),
-              onTap: () {
-                Navigator.pop(context);
-                _deleteContact(index);
-              },
-            ),
-          ],
-        );
-      },
+      builder: (_) => Wrap(
+        children: [
+          ListTile(
+            leading: Icon(Icons.chat),
+            title: Text("Démarrer le chat"),
+            onTap: () {
+              Navigator.pop(context);
+              _startChat(contacts[index]);
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.image),
+            title: Text("Changer la photo"),
+            onTap: () {
+              Navigator.pop(context);
+              _changeProfilePicture(index);
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.delete, color: Colors.red),
+            title: Text("Supprimer", style: TextStyle(color: Colors.red)),
+            onTap: () {
+              Navigator.pop(context);
+              _deleteContact(index);
+            },
+          ),
+        ],
+      ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text("Contacts"),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: IconThemeData(color: Colors.black),
         actions: [
           IconButton(
-            icon: Icon(Icons.add),
             onPressed: _addContact,
-          ),
+            icon: Icon(Icons.add),
+          )
         ],
       ),
       body: contacts.isEmpty
-          ? Center(child: Text("Aucun contact ajouté"))
+          ? Center(child: Text("Aucun contact"))
           : ListView.builder(
         itemCount: contacts.length,
-        itemBuilder: (context, index) {
-          String imagePath = contacts[index]["image"] ?? "";
+        itemBuilder: (ctx, i) {
+          final c = contacts[i];
           return ListTile(
             leading: CircleAvatar(
-              backgroundImage: imagePath.isNotEmpty
-                  ? (imagePath.startsWith('assets/')
-                  ? AssetImage(imagePath)
-                  : FileImage(File(imagePath)) as ImageProvider)
+              backgroundImage: c.image.isNotEmpty
+                  ? (c.image.startsWith("assets/")
+                  ? AssetImage(c.image)
+                  : FileImage(File(c.image)) as ImageProvider)
                   : null,
-              child: imagePath.isEmpty ? Icon(Icons.person) : null,
+              child: c.image.isEmpty ? Icon(Icons.person) : null,
             ),
-            title: Text(contacts[index]["name"]!),
-            onTap: () => _showContactOptions(index),
+            title: Text(c.name),
+            onTap: () => _showOptions(i),
           );
         },
       ),

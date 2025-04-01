@@ -1,4 +1,10 @@
+import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../utils/crypto_utils.dart';
+import '../utils/local_storage.dart';
+import '../utils/sercure_store.dart';
 
 class VerificationCodeScreen extends StatefulWidget {
   @override
@@ -8,24 +14,93 @@ class VerificationCodeScreen extends StatefulWidget {
 class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
   TextEditingController _otpController = TextEditingController();
   String _errorMessage = "";
+  String? _verificationId;
+  String? _phoneNumber;
 
-  void _verifyCode() {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)!.settings.arguments as Map?;
+    if (args != null) {
+      _phoneNumber = args['phone'] as String?;
+      _verificationId = args['verificationId'] as String?;
+    }
+  }
+
+  Future<bool> canDecryptLocalKey() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return false;
+
+    final encPrivKey = await LocalStorage.getPrivateKeyForUid(uid);
+    if (encPrivKey != null) {
+      final pass = await SecureStore.getPassphraseForUid(uid);
+      if (pass == null) return false;
+      try {
+        final privObj = jsonDecode(encPrivKey);
+        decryptPrivateKey(privObj['encrypted'], privObj['iv'], pass);
+        return true;
+      } catch (e) {
+        // Decryption failed, likely due to wrong passphrase.
+        return false;
+      }
+    } else {
+      // No local key: check Firestore backup.
+      final username = await LocalStorage.getUsername();
+      if (username == null || username.isEmpty) return false;
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('usernames').doc(username).get();
+      if (userDoc.exists) {
+        Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
+        String? backup = data['privateKeyBackup'];
+        if (backup != null && backup.isNotEmpty) {
+          // Save the backup locally.
+          await LocalStorage.savePrivateKeyForUid(uid, backup);
+          final pass = await SecureStore.getPassphraseForUid(uid);
+          if (pass == null) return false;
+          try {
+            final privObj = jsonDecode(backup);
+            decryptPrivateKey(privObj['encrypted'], privObj['iv'], pass);
+            return true;
+          } catch (e) {
+            return false;
+          }
+        }
+      }
+      return false;
+    }
+  }
+
+  void _verifyCode() async {
     String enteredCode = _otpController.text.trim();
 
     if (enteredCode.length < 6) {
-      setState(() {
-        _errorMessage = "Veuillez entrer un code de 6 chiffres";
-      });
+      setState(() => _errorMessage = "Veuillez entrer un code de 6 chiffres");
+      return;
+    }
+    if (_verificationId == null) {
+      setState(() => _errorMessage = "Le processus de vérification a échoué, réessayez.");
       return;
     }
 
-    // 🚀 Navigate to Profile setup
-    Navigator.pushNamed(context, '/profile');
+    try {
+      PhoneAuthCredential credential = PhoneAuthProvider.credential(
+        verificationId: _verificationId!,
+        smsCode: enteredCode,
+      );
+      await FirebaseAuth.instance.signInWithCredential(credential);
+
+      // Instead of checking decryption here, always navigate to the profile page.
+      Navigator.pushReplacementNamed(context, '/profile');
+    } catch (e) {
+      setState(() => _errorMessage = "Code invalide, veuillez réessayer.");
+    }
   }
+
+
+
 
   @override
   Widget build(BuildContext context) {
-    final String phoneNumber = ModalRoute.of(context)!.settings.arguments as String? ?? "Numéro inconnu";
+    final String phoneNumber = _phoneNumber ?? "Numéro inconnu";
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
 
@@ -37,9 +112,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Spacer(flex: 2), // Push content higher
-
-              // Title
+              Spacer(flex: 2),
               Text(
                 "Un code de vérification a été envoyé à",
                 textAlign: TextAlign.center,
@@ -50,8 +123,6 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                 ),
               ),
               SizedBox(height: 5),
-
-              // Phone Number
               Text(
                 phoneNumber,
                 style: TextStyle(
@@ -60,10 +131,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                   color: Colors.blue,
                 ),
               ),
-
-              SizedBox(height: screenHeight * 0.05), // Spacing
-
-              // OTP Input Field
+              SizedBox(height: screenHeight * 0.05),
               TextField(
                 controller: _otpController,
                 keyboardType: TextInputType.number,
@@ -83,22 +151,17 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                 ),
                 onChanged: (value) {
                   if (value.length == 6) {
-                    _verifyCode(); // Auto-submit when 6 digits entered
+                    _verifyCode();
                   }
                 },
               ),
               SizedBox(height: 10),
-
-              // Error Message
               if (_errorMessage.isNotEmpty)
                 Text(
                   _errorMessage,
                   style: TextStyle(color: Colors.red),
                 ),
-
-              Spacer(flex: 1), // Push content up slightly
-
-              // Confirm Button
+              Spacer(flex: 1),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -116,10 +179,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                   ),
                 ),
               ),
-
               SizedBox(height: 20),
-
-              // Resend Code Button
               TextButton(
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -131,10 +191,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                 ),
               ),
-
-              Spacer(flex: 3), // Bottom space
-
-              // Bottom Indicator
+              Spacer(flex: 3),
               Container(
                 width: screenWidth * 0.4,
                 height: 5,
@@ -143,8 +200,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                   borderRadius: BorderRadius.circular(100),
                 ),
               ),
-
-              SizedBox(height: 20), // Extra bottom spacing
+              SizedBox(height: 20),
             ],
           ),
         ),

@@ -1,5 +1,9 @@
+// lib/screens/edit_profile.dart
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../utils/local_storage.dart';
+import '../repositories/data_repository.dart'; // Votre repository pour communiquer avec Firebase
+import '../utils/local_storage.dart';          // Pour sauvegarder les données localement
+import '../utils/crypto_utils.dart';           // Pour générer et chiffrer les clés RSA
 
 class EditProfileScreen extends StatefulWidget {
   @override
@@ -7,7 +11,11 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
+  final DataRepository repository = FirebaseDataRepository();
+
+  // Contrôleurs pour le nom et le passphrase
   TextEditingController _nameController = TextEditingController();
+  TextEditingController _passphraseController = TextEditingController();
   String? _profilePicture;
   String _errorMessage = "";
   bool _isButtonEnabled = false;
@@ -18,17 +26,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _loadUserData();
   }
 
+  // Charge les données du profil depuis Firebase
   void _loadUserData() async {
-    String? savedName = await LocalStorage.getUsername();
-    String? savedProfilePicture = await LocalStorage.getProfilePicture();
-
+    var profile = await repository.getUserProfile();
     setState(() {
-      if (savedName != null) _nameController.text = savedName;
-      _profilePicture = savedProfilePicture;
-      _validateInput(savedName ?? ""); // Validate input on load
+      if (profile != null) {
+        _nameController.text = profile.username;
+        _profilePicture = profile.profilePicture;
+      }
+      _validateInput(_nameController.text);
     });
   }
 
+  // Vérifie que le nom n'est pas vide
   void _validateInput(String value) {
     setState(() {
       if (value.trim().isEmpty) {
@@ -41,21 +51,66 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
   }
 
+  // Sauvegarde le profil et intègre la génération de clés RSA
   void _saveUserData() async {
     String name = _nameController.text.trim();
+    String passphrase = _passphraseController.text.trim();
 
+    // Vérifie que le nom et le passphrase sont renseignés
     if (name.isEmpty) {
       setState(() {
         _errorMessage = "Le nom ne peut pas être vide";
       });
       return;
     }
+    if (passphrase.isEmpty) {
+      setState(() {
+        _errorMessage = "Un passphrase est requis pour sécuriser votre clé privée";
+      });
+      return;
+    }
 
-    await LocalStorage.saveUsername(name);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Profil mis à jour!")),
+    // Récupère le numéro de téléphone stocké localement (déjà sauvegardé lors de la vérification)
+    String? phone = await LocalStorage.getPhoneNumber();
+
+    // --- Étape 1 : Génération de la paire de clés RSA ---
+    // Cette fonction crée une clé publique et une clé privée.
+    final keyPair = generateRSAKeyPair();
+    // Pour l'instant, on convertit les clés en chaînes via .toString()
+    // (en production, vous devriez les encoder en format PEM).
+    String publicKeyStr = keyPair.publicKey.toString();
+    String privateKeyStr = keyPair.privateKey.toString();
+
+    // --- Étape 2 : Chiffrement de la clé privée ---
+    // On chiffre la clé privée avec le passphrase de l'utilisateur.
+    final encryptionResult = encryptPrivateKey(privateKeyStr, passphrase);
+    String encryptedPrivateKeyJson = jsonEncode(encryptionResult);
+
+    // --- Étape 3 : Sauvegarde locale de la clé privée chiffrée ---
+    // On enregistre la clé privée chiffrée sur l'appareil pour la récupérer plus tard.
+    await LocalStorage.savePrivateKey(encryptedPrivateKeyJson);
+
+    // --- Étape 4 : Mise à jour du profil sur Firebase ---
+    // On crée un objet profil incluant le nom, la photo, le numéro de téléphone
+    // et la clé publique, qui sera envoyée à Firebase.
+    var profile = UserProfile(
+      username: name,
+      profilePicture: _profilePicture ?? "",
+      phoneNumber: phone ?? "",
+      publicKey: publicKeyStr,  // La clé publique sera accessible par d'autres utilisateurs
     );
-    Navigator.pop(context);
+
+    try {
+      await repository.updateUserProfile(profile);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Profil sauvegardé!")),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    }
   }
 
   @override
@@ -69,19 +124,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         iconTheme: IconThemeData(color: Colors.black),
       ),
       body: Container(
-        color: Colors.white,
         padding: EdgeInsets.all(16),
+        color: Colors.white,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Profile Picture Selection
+            // Sélection de la photo de profil
             GestureDetector(
               onTap: () {
                 setState(() {
-                  _profilePicture =
-                  "https://placehold.co/100"; // Simulated image selection
+                  // Ici, on simule la sélection d'une image.
+                  _profilePicture = "https://placehold.co/100";
                 });
-                LocalStorage.saveProfilePicture(_profilePicture!);
               },
               child: CircleAvatar(
                 radius: 50,
@@ -94,8 +148,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
             SizedBox(height: 20),
-
-            // Name Input Field
+            // Champ de saisie pour le nom
             TextField(
               controller: _nameController,
               onChanged: _validateInput,
@@ -110,8 +163,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
             SizedBox(height: 20),
-
-            // Save Button
+            // Nouveau champ de saisie pour le passphrase
+            TextField(
+              controller: _passphraseController,
+              decoration: InputDecoration(
+                labelText: "Entrez un passphrase pour votre clé privée",
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                errorText: _errorMessage.isNotEmpty ? _errorMessage : null,
+              ),
+              obscureText: true,
+            ),
+            SizedBox(height: 20),
+            // Bouton de sauvegarde
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -125,7 +192,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 child: Text(
                   "Enregistrer",
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),

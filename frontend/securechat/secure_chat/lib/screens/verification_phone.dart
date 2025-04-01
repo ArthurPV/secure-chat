@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/local_storage.dart';
 
 class PhoneVerificationScreen extends StatefulWidget {
@@ -25,7 +25,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
     });
   }
 
-  void _continue() async {
+  Future<void> _continue() async {
     String phoneNumber = _phoneController.text.trim();
 
     if (phoneNumber.length != 10) {
@@ -35,12 +35,41 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
       return;
     }
 
-    String fullNumber = "$_countryCode $phoneNumber";
-
+    // Build the full phone number (without spaces) and optionally save it.
+    String fullNumber = "$_countryCode$phoneNumber";
     await LocalStorage.savePhoneNumber(fullNumber);
 
-    // 🚀 Navigate to OTP verification screen with phone number
-    Navigator.pushNamed(context, '/verification_code', arguments: fullNumber);
+    // Start phone number verification using Firebase Auth.
+    await FirebaseAuth.instance.verifyPhoneNumber(
+      phoneNumber: fullNumber,
+      timeout: Duration(seconds: 60),
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        // Auto-sign in if auto-retrieval works.
+        await FirebaseAuth.instance.signInWithCredential(credential);
+        // Check if the user already has a profile set up.
+        String? savedUsername = await LocalStorage.getUsername();
+        if (savedUsername != null && savedUsername.isNotEmpty) {
+          Navigator.pushReplacementNamed(context, '/main');
+        } else {
+          Navigator.pushReplacementNamed(context, '/profile');
+        }
+      },
+      verificationFailed: (FirebaseAuthException e) {
+        setState(() {
+          _errorMessage = e.message ?? "La vérification a échoué";
+        });
+      },
+      codeSent: (String verificationId, int? resendToken) {
+        // When the code is sent, navigate to the OTP screen.
+        Navigator.pushNamed(context, '/verification_code', arguments: {
+          'phone': fullNumber,
+          'verificationId': verificationId,
+        });
+      },
+      codeAutoRetrievalTimeout: (String verificationId) {
+        // Handle auto-retrieval timeout if needed.
+      },
+    );
   }
 
   @override
@@ -57,8 +86,6 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Spacer(flex: 1),
-
-              // Title
               Text(
                 "Entrez votre numéro de téléphone",
                 textAlign: TextAlign.center,
@@ -69,8 +96,6 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                 ),
               ),
               SizedBox(height: 10),
-
-              // Description
               Text(
                 "Veuillez confirmer votre code pays et saisir votre numéro de téléphone",
                 textAlign: TextAlign.center,
@@ -80,13 +105,9 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                   fontWeight: FontWeight.w400,
                 ),
               ),
-
               SizedBox(height: screenHeight * 0.05),
-
-              // Phone Number Input
               Row(
                 children: [
-                  // Country Code
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
@@ -103,8 +124,6 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                     ),
                   ),
                   SizedBox(width: 10),
-
-                  // Phone Number Field
                   Expanded(
                     child: TextField(
                       controller: _phoneController,
@@ -113,7 +132,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                       onChanged: _validatePhoneNumber,
                       decoration: InputDecoration(
                         hintText: "Numéro de téléphone",
-                        counterText: "", // Hide counter text
+                        counterText: "",
                         hintStyle: TextStyle(color: Color(0xFFADB5BD)),
                         filled: true,
                         fillColor: Color(0xFFF7F7FC),
@@ -127,8 +146,6 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                   ),
                 ],
               ),
-
-              // Error Message
               if (_errorMessage.isNotEmpty)
                 Padding(
                   padding: EdgeInsets.only(top: 8),
@@ -137,10 +154,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                     style: TextStyle(color: Colors.red, fontSize: 14),
                   ),
                 ),
-
               Spacer(flex: 2),
-
-              // Continue Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -162,10 +176,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                   ),
                 ),
               ),
-
               Spacer(flex: 3),
-
-              // Bottom Indicator
               Container(
                 width: screenWidth * 0.4,
                 height: 5,
@@ -174,7 +185,6 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                   borderRadius: BorderRadius.circular(100),
                 ),
               ),
-
               SizedBox(height: 20),
             ],
           ),

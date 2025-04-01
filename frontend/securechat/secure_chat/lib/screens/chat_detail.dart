@@ -1,159 +1,202 @@
+// lib/screens/chat_detail.dart
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+
+import '../repositories/data_repository.dart';
+import '../utils/local_storage.dart'; // pour comparer les noms d'utilisateur
 
 class ChatDetailScreen extends StatefulWidget {
-  final String contactName;
-  ChatDetailScreen({required this.contactName});
+  final String chatId;
+  ChatDetailScreen({required this.chatId});
 
   @override
   _ChatDetailScreenState createState() => _ChatDetailScreenState();
 }
 
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
-  TextEditingController _messageController = TextEditingController();
-  List<String> messages = [];
+  final DataRepository repository = FirebaseDataRepository();
+  final TextEditingController _messageController = TextEditingController();
+
+  // Nom d'utilisateur actuel
+  String? _myUsername;
+  // Cache pour les messages décryptés (clé = timestamp en ISO)
+  Map<String, String> _decryptedCache = {};
 
   @override
   void initState() {
     super.initState();
-    _loadMessages();
+    _loadMyUsername();
   }
 
-  // Load chat messages saved under a key equal to the contact's name.
-  Future<void> _loadMessages() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? chatData = prefs.getString(widget.contactName);
-    if (chatData != null) {
-      setState(() {
-        messages = List<String>.from(json.decode(chatData));
-      });
-    }
+  void _loadMyUsername() async {
+    final username = await LocalStorage.getUsername();
+    setState(() => _myUsername = username);
   }
 
-  // Save the chat messages under the contact's name.
-  Future<void> _saveMessages() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString(widget.contactName, json.encode(messages));
+  Stream<DocumentSnapshot> get chatStream {
+    return FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .snapshots();
   }
 
-  // Update the conversation summary (lastMessage) in the "chats" key.
-  Future<void> _updateConversationSummary(String newMessage) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? chatData = prefs.getString('chats');
-    if (chatData != null) {
-      List<Map<String, dynamic>> convos =
-      List<Map<String, dynamic>>.from(json.decode(chatData));
-      for (var convo in convos) {
-        if (convo["name"] == widget.contactName) {
-          convo["lastMessage"] = newMessage;
-          break;
-        }
-      }
-      await prefs.setString('chats', json.encode(convos));
-    }
-  }
-
-  // Send a message, update local state and conversation summary.
-  void _sendMessage() async {
-    String message = _messageController.text.trim();
-    if (message.isEmpty) return;
-    setState(() {
-      messages.add(message);
-    });
+  // Envoie le message en mode crypté.
+  void _sendEncrypted() async {
+    final plaintext = _messageController.text.trim();
+    if (plaintext.isEmpty) return;
     _messageController.clear();
-    await _saveMessages();
-    await _updateConversationSummary(message);
-  }
 
-// Delete the entire conversation.
-  void _deleteConversation() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    // Remove the conversation messages stored under the contact's key.
-    await prefs.remove(widget.contactName);
-
-    // Also update the conversation summary stored in 'chats'
-    String? chatData = prefs.getString('chats');
-    if (chatData != null) {
-      List<Map<String, dynamic>> convos = List<Map<String, dynamic>>.from(json.decode(chatData));
-      // Remove the conversation summary for this contact
-      convos.removeWhere((chat) => chat["name"] == widget.contactName);
-      await prefs.setString('chats', json.encode(convos));
+    try {
+      await repository.sendEncryptedMessage(widget.chatId, plaintext);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erreur lors de l'envoi du message crypté : $e")),
+      );
     }
-
-    Navigator.pop(context); // Return to the Chats screen.
   }
 
+  // Décrypte un message s'il n'est pas déjà en cache.
+  Future<void> _decryptMessageIfNeeded(ChatMessage msg) async {
+    String key = msg.timestamp.toIso8601String();
+    if (_decryptedCache.containsKey(key)) return;
+    try {
+      String decrypted = await repository.decryptReceivedMessage(msg, "");
+      if (mounted) {
+        setState(() {
+          _decryptedCache[key] = decrypted;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _decryptedCache[key] = "Erreur";
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_myUsername == null) {
+      return Scaffold(
+        appBar: AppBar(title: Text("Chat Crypté")),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(widget.contactName),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: IconThemeData(color: Colors.black),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.delete, color: Colors.red),
-            onPressed: _deleteConversation,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              padding: EdgeInsets.all(16),
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                return Align(
-                  alignment: Alignment.centerRight,
-                  child: Container(
-                    margin: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
-                    padding: EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.blueAccent,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      messages[index],
-                      style: TextStyle(color: Colors.white),
-                    ),
+      appBar: AppBar(title: Text("Chat Crypté")),
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: chatStream,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
+          final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
+          final List<dynamic> messagesData = data['messages'] ?? [];
+          final messages = messagesData
+              .map((m) => ChatMessage.fromMap(m as Map<String, dynamic>))
+              .toList();
+
+          // Déclenche le décryptage pour chaque message non encore en cache.
+          for (var msg in messages) {
+            String key = msg.timestamp.toIso8601String();
+            if (!_decryptedCache.containsKey(key)) {
+              _decryptMessageIfNeeded(msg);
+            }
+          }
+
+          // Vérifie si tous les messages sont décryptés.
+          bool allDecrypted = messages.every(
+                  (msg) => _decryptedCache.containsKey(msg.timestamp.toIso8601String()));
+
+          Widget listView = ListView.builder(
+            padding: EdgeInsets.all(16),
+            itemCount: messages.length,
+            itemBuilder: (context, index) {
+              final msg = messages[index];
+              String key = msg.timestamp.toIso8601String();
+              String decryptedText = _decryptedCache[key] ?? "";
+              bool isCurrentUser = (msg.sender == _myUsername);
+
+              return Align(
+                alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
+                child: Container(
+                  margin: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+                  padding: EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isCurrentUser ? Colors.blueAccent : Colors.grey,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: InputDecoration(
-                      hintText: "Écrire un message...",
-                      filled: true,
-                      fillColor: Colors.grey[200],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (!isCurrentUser)
+                        Text(
+                          msg.sender,
+                          style: TextStyle(color: Colors.white70, fontSize: 10),
+                        ),
+                      Text(decryptedText, style: TextStyle(color: Colors.white)),
+                      SizedBox(height: 4),
+                      Text(
+                        DateFormat('dd/MM/yyyy hh:mm a').format(msg.timestamp),
+                        style: TextStyle(color: Colors.white70, fontSize: 10),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+
+          return Stack(
+            children: [
+              listView,
+              if (!allDecrypted)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black45,
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 10),
+                          Text("Décryptage en cours...", style: TextStyle(color: Colors.white)),
+                        ],
                       ),
                     ),
                   ),
                 ),
-                SizedBox(width: 10),
-                IconButton(
-                  icon: Icon(Icons.send, color: Colors.blue),
-                  onPressed: _sendMessage,
+            ],
+          );
+        },
+      ),
+      // Barre d'entrée
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.all(10),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _messageController,
+                decoration: InputDecoration(
+                  hintText: "Écrire un message crypté...",
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+            SizedBox(width: 10),
+            IconButton(
+              icon: Icon(Icons.send, color: Colors.blue),
+              onPressed: _sendEncrypted,
+            ),
+          ],
+        ),
       ),
     );
   }
