@@ -49,7 +49,7 @@ RSpec.describe User, type: :model do
         end
 
         it 'unique' do
-          User.create!(email: 'user@localdev.me', password: 'password', username: 'xyz', phone_number: '1234567890')
+          user = User.create!(email: 'user@localdev.me', password: 'password', username: 'xyz', phone_number: '1234567890')
 
           expect(User.create(phone_number: '1234567890').errors.full_messages).to include("Phone number has already been taken")
         end

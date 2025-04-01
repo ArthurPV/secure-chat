@@ -3,7 +3,7 @@
 class User < ApplicationRecord
   include UuidConcern
 
-  encrypts :phone_number
+  encrypts :phone_number, deterministic: true
   encrypts :username, deterministic: true
 
   has_many :user_jtis, dependent: :destroy
