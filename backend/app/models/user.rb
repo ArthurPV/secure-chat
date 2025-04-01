@@ -8,7 +8,7 @@ class User < ApplicationRecord
 
   has_many :user_jtis, dependent: :destroy
   has_many :messages, dependent: :destroy
-  has_and_belongs_to_many :user_conversations, dependent: :destroy
+  has_and_belongs_to_many :user_conversations
 
   # Include default devise modules. Others available are:
   # :confirmable, :lockable, :timeoutable, :trackable and :omniauthable
