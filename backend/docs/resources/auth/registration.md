@@ -14,6 +14,8 @@ This endpoint is used to create a new user account.
 | --------- | ------ | ----------- |
 | email     | string | The email of the user |
 | password  | string | The password of the user |
+| username  | string | The username of the user |
+| phone_number | string | The phone number of the user |
 
 #### Request
 
@@ -21,7 +23,9 @@ This endpoint is used to create a new user account.
 {
   "user": {
     "email": "user@localdev.me",
-    "password": "password"
+    "password": "password",
+    "username": "user",
+    "phone_number": "1234567890"
   }
 }
 ```
