@@ -20,7 +20,7 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   resources :messages, only: %i[create destroy], param: :uuid
-  resources :user_conversations, only: %i[create destroy], param: :uuid
+  resources :user_conversations, only: %i[create destroy show index], param: :uuid
 
   namespace :users do
     resource :upload_profile_pictures, only: %i[update destroy]

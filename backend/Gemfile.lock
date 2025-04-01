@@ -121,6 +121,9 @@ GEM
       pp (>= 0.6.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
+    jbuilder (2.13.0)
+      actionview (>= 5.0.0)
+      activesupport (>= 5.0.0)
     json (2.10.2)
     jwt (2.10.1)
       base64
@@ -318,6 +321,7 @@ DEPENDENCIES
   devise (~> 4.9)
   fabrication (~> 2.31)
   faker
+  jbuilder (~> 2.13)
   jwt (~> 2.10)
   pg (~> 1.1)
   puma (>= 5.0)
