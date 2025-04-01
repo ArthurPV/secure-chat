@@ -3,6 +3,9 @@
 class User < ApplicationRecord
   include UuidConcern
 
+  encrypts :phone_number, deterministic: true
+  encrypts :username, deterministic: true
+
   has_many :user_jtis, dependent: :destroy
   has_many :messages, dependent: :destroy
   has_and_belongs_to_many :user_conversations, dependent: :destroy
@@ -15,4 +18,5 @@ class User < ApplicationRecord
   validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :uuid, presence: true, uniqueness: true
   validates :username, presence: true, uniqueness: true, format: { with: /\A[a-zA-Z0-9]+\Z/ }
+  validates :phone_number, presence: true, uniqueness: true, format: { with: /\A[0-9]{10}\Z/ }
 end
