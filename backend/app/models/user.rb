@@ -8,6 +8,7 @@ class User < ApplicationRecord
   encrypts :phone_number, deterministic: true
   encrypts :username, deterministic: true
 
+  has_one_attached :profile_picture
   has_many :user_jtis, dependent: :destroy
   has_many :messages, dependent: :destroy
   has_and_belongs_to_many :user_conversations
@@ -24,8 +25,13 @@ class User < ApplicationRecord
   validates :uuid, presence: true, uniqueness: true
   validates :username, presence: true, uniqueness: true, format: { with: /\A[a-zA-Z0-9_]+\Z/ }
   validates :phone_number, presence: true, uniqueness: true, format: { with: /\A[0-9]{10}\Z/ }
+  validates :profile_picture, content_type: %w[image/png image/jpeg], size: { less_than: 5.megabytes }
 
   before_create :create_user_key
+
+  def profile_picture_url
+    profile_picture.attached? ? profile_picture.url : nil
+  end
 
   private
 

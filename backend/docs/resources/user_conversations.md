@@ -48,7 +48,7 @@ No request body.
 
 #### Response
 
-##### 200 OK
+##### 204 No Content
 
 No response body.
 
