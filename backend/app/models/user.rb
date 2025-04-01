@@ -29,6 +29,8 @@ class User < ApplicationRecord
 
   before_create :create_user_key
 
+  alias :conversations :user_conversations
+
   def profile_picture_url
     profile_picture.attached? ? profile_picture.url : nil
   end
