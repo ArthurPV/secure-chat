@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class Auth::Override::Devise::RegistrationsController < Devise::RegistrationsController
+  before_action :configure_permitted_parameters
+
   # DISABLED GET /auth/sign_up
   def new
     head :not_found
@@ -34,4 +36,8 @@ class Auth::Override::Devise::RegistrationsController < Devise::RegistrationsCon
 
   # The path used after sign up.
   def after_sign_up_path_for(_resource); end
+
+  def configure_permitted_parameters
+    devise_parameter_sanitizer.permit(:sign_up, keys: %i[username email password])
+  end
 end
