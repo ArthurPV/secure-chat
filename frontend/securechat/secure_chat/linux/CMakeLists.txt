@@ -60,6 +60,9 @@ add_subdirectory("runner")
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)
 
+# Fix from https://github.com/juliansteenbakker/flutter_secure_storage/issues/829
+add_definitions(-DAPPLICATION_ID="${APPLICATION_ID}")
+
 # Only the install-generated bundle's copy of the executable will launch
 # correctly, since the resources must in the right relative locations. To avoid
 # people trying to run the unbundled copy, put it in a subdirectory instead of
