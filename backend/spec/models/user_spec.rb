@@ -72,9 +72,10 @@ RSpec.describe User, type: :model do
   describe 'callbacks' do
     context 'create_user_key' do
       it 'create user_key' do
-        user = User.create!(email: 'user10@localdev.me', password: 'password', username: 'xyz10', phone_number: '1234777777', public_key: 'x', private_key: 'y')
+        user = Fabricate(:user)
 
         expect(user.user_key).to be_present
+        expect(user.user_key.persisted?).to be_truthy
       end
     end
   end
