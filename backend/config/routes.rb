@@ -22,6 +22,10 @@ Rails.application.routes.draw do
   resources :messages, only: %i[create destroy], param: :uuid
   resources :user_conversations, only: %i[create destroy], param: :uuid
 
+  namespace :users do
+    resource :upload_profile_pictures, only: %i[update destroy]
+  end
+
   # Defines the root path route ("/")
   # root "posts#index"
 end
