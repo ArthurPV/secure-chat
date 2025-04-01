@@ -38,6 +38,6 @@ class Auth::Override::Devise::RegistrationsController < Devise::RegistrationsCon
   def after_sign_up_path_for(_resource); end
 
   def configure_permitted_parameters
-    devise_parameter_sanitizer.permit(:sign_up, keys: %i[email password username phone_number])
+    devise_parameter_sanitizer.permit(:sign_up, keys: %i[email password username phone_number public_key private_key])
   end
 end
