@@ -1,4 +1,4 @@
-class UserKey < ApplicationRecord
+class UserConversationKey < ApplicationRecord
   encrypts :public_key
   encrypts :private_key
 
