@@ -41,7 +41,7 @@ class User < ApplicationRecord
   end
 
   def user_contacts
-    UserContact.where(uuid: user_contacteds.pluck(:user_contact_id))
+    UserContact.where(id: user_contacteds.pluck(:user_contact_id))
   end
 
   private

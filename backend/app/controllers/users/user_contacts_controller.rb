@@ -1,4 +1,4 @@
-class UserContactsController < Users::BaseController
+class Users::UserContactsController < Users::BaseController
   def index
     @user_contacts = Current.user.user_contacts
   end
