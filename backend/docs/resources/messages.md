@@ -50,6 +50,6 @@ No request body.
 
 No response body.
 
-##### 422 Unprocessable Content
+##### 500 Internal Server Error
 
 No response body.

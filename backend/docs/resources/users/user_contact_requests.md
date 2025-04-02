@@ -26,7 +26,7 @@ This endpoint is used to create a new contact request.
 
 No response body.
 
-##### 500 Internal Server Error
+##### 422 Unprocessable Content
 
 No response body.
 

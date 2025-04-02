@@ -29,7 +29,7 @@ This endpoint is used to obtain a JWT token. The token is valid for 2 weeks.
 }
 ```
 
-#### Response
+#### Responses
 
 ##### 200 OK
 
@@ -51,7 +51,7 @@ This endpoint is used to revoke a JWT token.
 
 No request body.
 
-#### Response
+#### Responses
 
 ##### 204 No Content
 

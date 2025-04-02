@@ -34,7 +34,7 @@ This endpoint is used to create a new user account.
 }
 ```
 
-#### Response
+#### Responses
 
 ##### 200 OK
 
