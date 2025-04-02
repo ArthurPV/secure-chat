@@ -28,6 +28,11 @@ class SecureStore {
     await _storage.delete(key: 'currentUser');
   }
 
+  static Future<void> clear() async {
+	  await SecureStore.clearSessionToken();
+	  await SecureStore.clearCurrentUser();
+  }
+
   // Save passphrase for a specific UID
   static Future<void> savePassphraseForUid(String uid, String passphrase) async {
     await _storage.write(key: 'privateKeyPassphrase_$uid', value: passphrase);

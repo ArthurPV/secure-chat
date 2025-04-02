@@ -35,19 +35,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// Logs out the current Firebase user. Note: The private key is preserved so that the user can re-use it on subsequent logins.
   // TODO: Logout
   void _logout(BuildContext context) async {
-    // final currentUser = FirebaseAuth.instance.currentUser;
-    // final uid = currentUser?.uid;
+	Sessions sessions = Sessions();
 
-    // if (uid != null) {
-    //   // Remove the user's passphrase from Secure Storage
-    //   await SecureStore.clearPassphraseForUid(uid);
+	await sessions.signOut();
+	await SecureStore.clear();
 
-    //   // Do not clear the user's private key so that it persists across logins.
-    //   // await LocalStorage.clearUserData(uid);
-    // }
-
-    // await FirebaseAuth.instance.signOut();
-    // Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+	if (context.mounted) {
+		Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+	}
   }
 
   void _openEditProfile(BuildContext context) {
