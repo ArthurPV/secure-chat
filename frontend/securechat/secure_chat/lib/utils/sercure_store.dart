@@ -16,6 +16,18 @@ class SecureStore {
     await _storage.delete(key: 'sessionToken');
   }
 
+  static Future<void> saveCurrentUser(String userUuid) async {
+    await _storage.write(key: 'currentUser', value: userUuid);
+  }
+
+  static Future<String?> getCurrentUser() async {
+    return await _storage.read(key: 'currentUser');
+  }
+
+  static Future<void> clearCurrentUser() async {
+    await _storage.delete(key: 'currentUser');
+  }
+
   // Save passphrase for a specific UID
   static Future<void> savePassphraseForUid(String uid, String passphrase) async {
     await _storage.write(key: 'privateKeyPassphrase_$uid', value: passphrase);

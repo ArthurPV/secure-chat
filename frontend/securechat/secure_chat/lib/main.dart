@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:secure_chat/utils/sercure_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/walkthrough.dart';
@@ -13,17 +14,9 @@ import 'utils/local_storage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  String? currentUser = await SecureStore.getCurrentUser();
 
-  final prefs = await SharedPreferences.getInstance();
-  bool isFirstLaunch = prefs.getBool('first_launch') ?? true;
-  String? savedUser = await LocalStorage.getUsername();
-
-  if (isFirstLaunch) {
-    await prefs.setBool('first_launch', false);
-    savedUser = null; // Force the app to start fresh
-  }
-
-  runApp(SecureChatApp(isUserLoggedIn: savedUser != null));
+  runApp(SecureChatApp(isUserLoggedIn: currentUser != null));
 }
 
 class SecureChatApp extends StatelessWidget {

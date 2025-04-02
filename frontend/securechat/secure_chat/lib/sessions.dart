@@ -47,6 +47,35 @@ class UserConversation {
     }
 }
 
+class User {
+    String uuid;
+    String username;
+    String email;
+    String phoneNumber;
+    String publicKey;
+    String? profilePicture;
+
+    User({
+        required this.uuid,
+        required this.username,
+        required this.email,
+        required this.phoneNumber,
+        required this.publicKey,
+        required this.profilePicture,
+    });
+
+    factory User.fromJson(Map<String, dynamic> json) {
+        return User(
+            uuid: json["uuid"],
+            username: json["username"],
+            email: json["email"],
+            phoneNumber: json["phone_number"],
+            publicKey: json["public_key"],
+            profilePicture: json["profile_picture"], 
+        );
+    }
+}
+
 class Sessions {
     // TODO: Maybe improve by getting the baseUrl from the .env file
     final baseUrl = "http://localhost:3000";
@@ -57,9 +86,11 @@ class Sessions {
     }
 
     Future<Map<String, String>> buildHeaders() async {
+        String sessionToken = (await _getSessionToken()) ?? "";
+
         return <String, String>{
             "Content-Type": "application/json",
-            "Authorization": "Bearer ${(await _getSessionToken()) ?? ""}",
+            "Authorization": "Bearer $sessionToken",
         };
     }
 
@@ -74,7 +105,7 @@ class Sessions {
         return _sessionToken;
     }
 
-    Future<void> signIn(String email, String password) async {
+    Future<bool> signIn(String email, String password) async {
         final String url = buildUrl("auth/sign_in");
         // TODO: Maybe secure the password
         final body = {
@@ -93,9 +124,11 @@ class Sessions {
             final Map<String, dynamic> data = jsonDecode(response.body);
             final String token = data["token"];
             await _setSessionToken(token);
-        } else {
-            throw Exception("Failed to sign in");
+
+            return true;
         }
+
+        return false;
     }
 
     Future<void> signOut() async {
@@ -211,6 +244,21 @@ class Sessions {
             return UserConversation.fromJson(data);
         } else {
             throw Exception("Failed to get user conversation");
+        }
+    }
+
+    Future<User> getUser() async {
+        final String url = buildUrl("users");
+        final http.Response response = await http.get(
+            Uri.parse(url),
+            headers: await buildHeaders(),
+        );
+
+        if (response.statusCode == 200) {
+            final Map<String, dynamic> data = jsonDecode(response.body);
+            return User.fromJson(data);
+        } else {
+            throw Exception("Failed to get user");
         }
     }
 }

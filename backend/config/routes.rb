@@ -22,7 +22,7 @@ Rails.application.routes.draw do
   resources :messages, only: %i[create destroy], param: :uuid
   resources :user_conversations, only: %i[create destroy show index], param: :uuid
 
-  resource :users, only: %i[show update] do
+  resource :users, only: %i[show update], defaults: { format: "json" } do
     resource :upload_profile_pictures, only: %i[update destroy]
     resources :user_contact_requests, only: %i[index create destroy], param: :uuid do
       member do
