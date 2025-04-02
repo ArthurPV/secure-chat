@@ -166,35 +166,35 @@ class _ContactsScreenState extends State<ContactsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(
-      //   title: Text("Contacts"),
-      //   actions: [
-      //     IconButton(
-      //       onPressed: _addContact,
-      //       icon: Icon(Icons.add),
-      //     )
-      //   ],
-      // ),
-      // body: contacts.isEmpty
-      //     ? Center(child: Text("Aucun contact"))
-      //     : ListView.builder(
-      //   itemCount: contacts.length,
-      //   itemBuilder: (ctx, i) {
-      //     final c = contacts[i];
-      //     return ListTile(
-      //       leading: CircleAvatar(
-      //         backgroundImage: c.image.isNotEmpty
-      //             ? (c.image.startsWith("assets/")
-      //             ? AssetImage(c.image)
-      //             : FileImage(File(c.image)) as ImageProvider)
-      //             : null,
-      //         child: c.image.isEmpty ? Icon(Icons.person) : null,
-      //       ),
-      //       title: Text(c.name),
-      //       onTap: () => _showOptions(i),
-      //     );
-      //   },
-      // ),
-    );
+        // appBar: AppBar(
+        //   title: Text("Contacts"),
+        //   actions: [
+        //     IconButton(
+        //       onPressed: _addContact,
+        //       icon: Icon(Icons.add),
+        //     )
+        //   ],
+        // ),
+        // body: contacts.isEmpty
+        //     ? Center(child: Text("Aucun contact"))
+        //     : ListView.builder(
+        //   itemCount: contacts.length,
+        //   itemBuilder: (ctx, i) {
+        //     final c = contacts[i];
+        //     return ListTile(
+        //       leading: CircleAvatar(
+        //         backgroundImage: c.image.isNotEmpty
+        //             ? (c.image.startsWith("assets/")
+        //             ? AssetImage(c.image)
+        //             : FileImage(File(c.image)) as ImageProvider)
+        //             : null,
+        //         child: c.image.isEmpty ? Icon(Icons.person) : null,
+        //       ),
+        //       title: Text(c.name),
+        //       onTap: () => _showOptions(i),
+        //     );
+        //   },
+        // ),
+        );
   }
 }

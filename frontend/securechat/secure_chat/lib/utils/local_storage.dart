@@ -4,10 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class LocalStorage {
-
-
   // ============== PER-USER ENCRYPTED PRIVATE KEY =============
-  static Future<void> savePrivateKeyForUid(String uid, String encryptedPrivateKeyJson) async {
+  static Future<void> savePrivateKeyForUid(
+      String uid, String encryptedPrivateKeyJson) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('private_key_$uid', encryptedPrivateKeyJson);
   }

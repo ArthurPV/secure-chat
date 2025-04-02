@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:secure_chat/sessions.dart'; // Import flutter_svg package
+import 'package:secure_chat/requests/auth/authorization.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -14,8 +13,9 @@ class _SignInScreenState extends State<SignInScreen> {
   final passwordController = TextEditingController();
 
   Future<bool> _doSignIn(String email, String password) async {
-    Sessions sessions = Sessions();
-    return await sessions.signIn(email, password);
+    RequestsAuthorization requestsAuthorization = RequestsAuthorization();
+
+    return await requestsAuthorization.signIn(email, password);
   }
 
   @override
@@ -52,7 +52,8 @@ class _SignInScreenState extends State<SignInScreen> {
 
             // Input Field for Email
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.1),
+              padding: EdgeInsets.symmetric(
+                  horizontal: MediaQuery.of(context).size.width * 0.1),
               child: TextField(
                 controller: emailController,
                 decoration: InputDecoration(
@@ -66,7 +67,8 @@ class _SignInScreenState extends State<SignInScreen> {
 
             // Input Field for Password
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.1),
+              padding: EdgeInsets.symmetric(
+                  horizontal: MediaQuery.of(context).size.width * 0.1),
               child: TextField(
                 controller: passwordController,
                 obscureText: true,
@@ -81,7 +83,8 @@ class _SignInScreenState extends State<SignInScreen> {
 
             // Start Button (Properly Spaced)
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.1),
+              padding: EdgeInsets.symmetric(
+                  horizontal: MediaQuery.of(context).size.width * 0.1),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF4B00FA),
@@ -91,7 +94,9 @@ class _SignInScreenState extends State<SignInScreen> {
                   padding: EdgeInsets.symmetric(vertical: 16, horizontal: 40),
                 ),
                 onPressed: () async {
-                  if (await _doSignIn(emailController.text, passwordController.text) && context.mounted) {
+                  if (await _doSignIn(
+                          emailController.text, passwordController.text) &&
+                      context.mounted) {
                     Navigator.pushNamed(context, '/main');
                   } else {
                     // Handle sign-in failure
@@ -100,21 +105,19 @@ class _SignInScreenState extends State<SignInScreen> {
                     );
                   }
                 },
-                child: Text(
-                  "Se connecter",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  )
-                ),
+                child: Text("Se connecter",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    )),
               ),
             ),
 
             Spacer(flex: 2), // Bottom Spacer
           ],
         ),
-      ), 
+      ),
     );
   }
 }

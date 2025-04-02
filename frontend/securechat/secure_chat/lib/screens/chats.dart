@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:secure_chat/sessions.dart';
+import 'package:secure_chat/models/message.dart';
 
 import 'chat_detail.dart';
 import '../utils/local_storage.dart'; // pour obtenir le nom d'utilisateur
@@ -16,7 +16,8 @@ class ChatsScreenState extends State<ChatsScreen> {
   // final DataRepository repository = FirebaseDataRepository();
   // Stream<QuerySnapshot>? _chatsStream;
   // String? _currentUsername;
-  Map<String, String> previewCache = {}; // Cache des aperçus décryptés par document de chat
+  Map<String, String> previewCache =
+      {}; // Cache des aperçus décryptés par document de chat
 
   @override
   void initState() {
@@ -138,7 +139,8 @@ class ChatsScreenState extends State<ChatsScreen> {
   }
 
   /// Décrypte de manière asynchrone le dernier message d'un chat et le met en cache.
-  Future<void> _loadPreview(String chatId, /* ChatMessage */ Message lastMessage) async {
+  Future<void> _loadPreview(
+      String chatId, /* ChatMessage */ ModelMessage lastMessage) async {
     // try {
     //   final decrypted = await repository.decryptReceivedMessage(lastMessage, "");
     //   if (mounted) {
@@ -158,101 +160,101 @@ class ChatsScreenState extends State<ChatsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(
-      //   title: Text("Chats (Cryptés)"),
-      //   actions: [
-      //     IconButton(
-      //       onPressed: _showAddConversationDialog,
-      //       icon: Icon(Icons.add),
-      //       tooltip: "Nouvelle conversation",
-      //     )
-      //   ],
-      // ),
-      // body: _chatsStream == null
-      //     ? Center(child: CircularProgressIndicator())
-      //     : StreamBuilder<QuerySnapshot>(
-      //   stream: _chatsStream,
-      //   builder: (context, snapshot) {
-      //     if (!snapshot.hasData) {
-      //       return Center(child: CircularProgressIndicator());
-      //     }
+        // appBar: AppBar(
+        //   title: Text("Chats (Cryptés)"),
+        //   actions: [
+        //     IconButton(
+        //       onPressed: _showAddConversationDialog,
+        //       icon: Icon(Icons.add),
+        //       tooltip: "Nouvelle conversation",
+        //     )
+        //   ],
+        // ),
+        // body: _chatsStream == null
+        //     ? Center(child: CircularProgressIndicator())
+        //     : StreamBuilder<QuerySnapshot>(
+        //   stream: _chatsStream,
+        //   builder: (context, snapshot) {
+        //     if (!snapshot.hasData) {
+        //       return Center(child: CircularProgressIndicator());
+        //     }
 
-      //     return ListView.separated(
-      //       itemCount: snapshot.data!.docs.length,
-      //       separatorBuilder: (_, __) => Divider(height: 1),
-      //       itemBuilder: (context, index) {
-      //         final doc = snapshot.data!.docs[index];
-      //         final data = doc.data() as Map<String, dynamic>;
-      //         final List<dynamic> participants = data['participants'] ?? [];
-      //         final List<dynamic> messagesData = data['messages'] ?? [];
-      //         final messages = messagesData
-      //             .map((m) => ChatMessage.fromMap(m as Map<String, dynamic>))
-      //             .toList();
+        //     return ListView.separated(
+        //       itemCount: snapshot.data!.docs.length,
+        //       separatorBuilder: (_, __) => Divider(height: 1),
+        //       itemBuilder: (context, index) {
+        //         final doc = snapshot.data!.docs[index];
+        //         final data = doc.data() as Map<String, dynamic>;
+        //         final List<dynamic> participants = data['participants'] ?? [];
+        //         final List<dynamic> messagesData = data['messages'] ?? [];
+        //         final messages = messagesData
+        //             .map((m) => ChatMessage.fromMap(m as Map<String, dynamic>))
+        //             .toList();
 
-      //         // Détermine le nom de la conversation (l'autre participant).
-      //         String conversationName = doc.id;
-      //         if (_currentUsername != null && participants.isNotEmpty) {
-      //           conversationName = participants.firstWhere(
-      //                 (p) => p != _currentUsername,
-      //             orElse: () => doc.id,
-      //           );
-      //         }
+        //         // Détermine le nom de la conversation (l'autre participant).
+        //         String conversationName = doc.id;
+        //         if (_currentUsername != null && participants.isNotEmpty) {
+        //           conversationName = participants.firstWhere(
+        //                 (p) => p != _currentUsername,
+        //             orElse: () => doc.id,
+        //           );
+        //         }
 
-      //         // Aperçu décrypté du dernier message.
-      //         String preview = "Décryptage...";
-      //         if (messages.isNotEmpty) {
-      //           if (previewCache.containsKey(doc.id)) {
-      //             preview = previewCache[doc.id]!;
-      //           } else {
-      //             _loadPreview(doc.id, messages.last);
-      //           }
-      //         }
+        //         // Aperçu décrypté du dernier message.
+        //         String preview = "Décryptage...";
+        //         if (messages.isNotEmpty) {
+        //           if (previewCache.containsKey(doc.id)) {
+        //             preview = previewCache[doc.id]!;
+        //           } else {
+        //             _loadPreview(doc.id, messages.last);
+        //           }
+        //         }
 
-      //         // Formate la date du dernier message.
-      //         String dateString = "";
-      //         if (messages.isNotEmpty) {
-      //           dateString = DateFormat('dd/MM/yyyy hh:mm a')
-      //               .format(messages.last.timestamp);
-      //         }
+        //         // Formate la date du dernier message.
+        //         String dateString = "";
+        //         if (messages.isNotEmpty) {
+        //           dateString = DateFormat('dd/MM/yyyy hh:mm a')
+        //               .format(messages.last.timestamp);
+        //         }
 
-      //         return ListTile(
-      //           leading: CircleAvatar(
-      //             child: Text(
-      //               conversationName.isNotEmpty
-      //                   ? conversationName.substring(0, 1).toUpperCase()
-      //                   : "?",
-      //             ),
-      //           ),
-      //           title: Text(conversationName),
-      //           subtitle: messages.isNotEmpty
-      //               ? Column(
-      //             crossAxisAlignment: CrossAxisAlignment.start,
-      //             children: [
-      //               Text(
-      //                 preview,
-      //                 maxLines: 1,
-      //                 overflow: TextOverflow.ellipsis,
-      //               ),
-      //               SizedBox(height: 4),
-      //               Text(
-      //                 dateString,
-      //                 style: TextStyle(fontSize: 10, color: Colors.grey),
-      //               ),
-      //             ],
-      //           )
-      //               : Text("Nouvelle conversation",
-      //               maxLines: 1, overflow: TextOverflow.ellipsis),
-      //           onTap: () => _openChat(doc.id),
-      //           trailing: IconButton(
-      //             icon: Icon(Icons.delete, color: Colors.red),
-      //             onPressed: () => _deleteConversation(doc.id),
-      //             tooltip: "Supprimer la conversation",
-      //           ),
-      //         );
-      //       },
-      //     );
-      //   },
-      // ),
-    );
+        //         return ListTile(
+        //           leading: CircleAvatar(
+        //             child: Text(
+        //               conversationName.isNotEmpty
+        //                   ? conversationName.substring(0, 1).toUpperCase()
+        //                   : "?",
+        //             ),
+        //           ),
+        //           title: Text(conversationName),
+        //           subtitle: messages.isNotEmpty
+        //               ? Column(
+        //             crossAxisAlignment: CrossAxisAlignment.start,
+        //             children: [
+        //               Text(
+        //                 preview,
+        //                 maxLines: 1,
+        //                 overflow: TextOverflow.ellipsis,
+        //               ),
+        //               SizedBox(height: 4),
+        //               Text(
+        //                 dateString,
+        //                 style: TextStyle(fontSize: 10, color: Colors.grey),
+        //               ),
+        //             ],
+        //           )
+        //               : Text("Nouvelle conversation",
+        //               maxLines: 1, overflow: TextOverflow.ellipsis),
+        //           onTap: () => _openChat(doc.id),
+        //           trailing: IconButton(
+        //             icon: Icon(Icons.delete, color: Colors.red),
+        //             onPressed: () => _deleteConversation(doc.id),
+        //             tooltip: "Supprimer la conversation",
+        //           ),
+        //         );
+        //       },
+        //     );
+        //   },
+        // ),
+        );
   }
 }

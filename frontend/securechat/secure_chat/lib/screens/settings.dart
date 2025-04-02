@@ -1,14 +1,14 @@
-// lib/screens/settings.dart
 import 'package:flutter/material.dart';
-import 'package:secure_chat/sessions.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../utils/local_storage.dart';
-import '../utils/sercure_store.dart';
+import 'package:secure_chat/models/user.dart';
+import 'package:secure_chat/requests/auth/authorization.dart';
+import 'package:secure_chat/requests/user.dart';
 import 'edit_profile.dart';
 
 class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
   @override
-  _SettingsScreenState createState() => _SettingsScreenState();
+  State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
@@ -23,8 +23,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _loadUserData() async {
     // TODO: Store the user data in a secure storage or local storage
-    Sessions sessions = Sessions();
-    User user = await sessions.getUser();
+    UserRequests userRequests = UserRequests();
+    ModelUser user = await userRequests.get();
 
     setState(() {
       _username = user.username;
@@ -35,14 +35,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// Logs out the current Firebase user. Note: The private key is preserved so that the user can re-use it on subsequent logins.
   // TODO: Logout
   void _logout(BuildContext context) async {
-	Sessions sessions = Sessions();
+    RequestsAuthorization requestsAuthorization = RequestsAuthorization();
 
-	await sessions.signOut();
-	await SecureStore.clear();
+    await requestsAuthorization.signOut();
 
-	if (context.mounted) {
-		Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-	}
+    if (context.mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+    }
   }
 
   void _openEditProfile(BuildContext context) {

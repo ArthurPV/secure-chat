@@ -16,7 +16,8 @@ import 'package:pointycastle/pointycastle.dart';
 import 'package:pointycastle/random/fortuna_random.dart';
 
 /// Generate RSA Key Pair (public + private).
-AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> generateRSAKeyPair({int bitLength = 2048}) {
+AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> generateRSAKeyPair(
+    {int bitLength = 2048}) {
   final secureRandom = FortunaRandom();
   secureRandom.seed(KeyParameter(
     Uint8List.fromList(
@@ -47,7 +48,8 @@ Uint8List deriveKey(String passphrase,
 }
 
 /// Encrypt a private key (PEM or string) with passphrase using AES-GCM.
-Map<String, dynamic> encryptPrivateKey(String privateKeyPem, String passphrase) {
+Map<String, dynamic> encryptPrivateKey(
+    String privateKeyPem, String passphrase) {
   final key = deriveKey(passphrase);
   final secureRandom = FortunaRandom();
   secureRandom.seed(KeyParameter(Uint8List.fromList(
@@ -68,7 +70,8 @@ Map<String, dynamic> encryptPrivateKey(String privateKeyPem, String passphrase) 
 }
 
 /// Decrypt a private key with passphrase (AES-GCM).
-String decryptPrivateKey(String encryptedBase64, String ivBase64, String passphrase) {
+String decryptPrivateKey(
+    String encryptedBase64, String ivBase64, String passphrase) {
   final key = deriveKey(passphrase);
   final iv = base64.decode(ivBase64);
   final encrypted = base64.decode(encryptedBase64);

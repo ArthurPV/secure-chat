@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:secure_chat/sessions.dart';
+import 'package:secure_chat/models/message.dart';
 
 import '../utils/local_storage.dart'; // pour comparer les noms d'utilisateur
 
@@ -56,7 +56,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   // Décrypte un message s'il n'est pas déjà en cache.
-  Future<void> _decryptMessageIfNeeded(Message msg) async {
+  Future<void> _decryptMessageIfNeeded(ModelMessage msg) async {
     // String key = msg.timestamp.toIso8601String();
     // if (_decryptedCache.containsKey(key)) return;
     // try {
