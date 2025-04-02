@@ -4,6 +4,18 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class SecureStore {
   static final _storage = FlutterSecureStorage();
 
+  static Future<void> saveSessionToken(String token) async {
+    await _storage.write(key: 'sessionToken', value: token);
+  }
+
+  static Future<String?> getSessionToken() async {
+    return await _storage.read(key: 'sessionToken');
+  }
+
+  static Future<void> clearSessionToken() async {
+    await _storage.delete(key: 'sessionToken');
+  }
+
   // Save passphrase for a specific UID
   static Future<void> savePassphraseForUid(String uid, String passphrase) async {
     await _storage.write(key: 'privateKeyPassphrase_$uid', value: passphrase);

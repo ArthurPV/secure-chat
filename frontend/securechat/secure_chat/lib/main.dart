@@ -13,15 +13,13 @@ import 'screens/chats.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Initialize Firebase before doing anything else.
-  await Firebase.initializeApp();
 
   final prefs = await SharedPreferences.getInstance();
-  bool isFirstLaunch = prefs.getBool('first_launch') ?? true; // ✅ Check if it's the first launch
+  bool isFirstLaunch = prefs.getBool('first_launch') ?? true;
   String? savedUser = await LocalStorage.getUsername();
 
   if (isFirstLaunch) {
-    await prefs.setBool('first_launch', false); // 🚀 Mark that setup is done
+    await prefs.setBool('first_launch', false);
     savedUser = null; // Force the app to start fresh
   }
 
@@ -39,7 +37,7 @@ class SecureChatApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'SecureChat',
       theme: ThemeData(primarySwatch: Colors.blue),
-      initialRoute: isUserLoggedIn ? '/main' : '/', // 🚀 Only go to main if a user exists
+      initialRoute: isUserLoggedIn ? '/main' : '/',
       routes: {
         '/': (context) => WalkthroughScreen(),
         '/phone_verification': (context) => PhoneVerificationScreen(),

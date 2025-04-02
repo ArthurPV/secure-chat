@@ -31,6 +31,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   /// Logs out the current Firebase user. Note: The private key is preserved so that the user can re-use it on subsequent logins.
+  // TODO: Logout
   void _logout(BuildContext context) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     final uid = currentUser?.uid;

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:http/http.dart' as http;
 
 import '../utils/local_storage.dart';
 import '../utils/crypto_utils.dart';
@@ -39,7 +40,8 @@ class UserProfile {
   factory UserProfile.fromMap(Map<String, dynamic> map) {
     return UserProfile(
       username: map['username'] as String,
-      profilePicture: map['profilePicture'] as String,
+      // TODO: Manage profile picture
+      profilePicture: map['profilePicture'] as String? ?? "https://placehold.co/100",
       phoneNumber: map['phoneNumber'] as String,
       publicKey: map['publicKey'] as String? ?? "",
       privateKeyBackup: map['privateKeyBackup'] as String? ?? "",
@@ -140,6 +142,7 @@ abstract class DataRepository {
 /// --- Implémentation Firebase et stockage local ---
 class FirebaseDataRepository implements DataRepository {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  final String baseUrl = "http://localhost:3000";
 
   // OPÉRATIONS DE PROFIL
 
