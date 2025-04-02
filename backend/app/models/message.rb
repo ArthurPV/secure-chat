@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class Message < ApplicationRecord 
+class Message < ApplicationRecord
   attr_accessor :conversation_uuid
 
   encrypts :content
