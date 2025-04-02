@@ -24,6 +24,12 @@ Rails.application.routes.draw do
 
   namespace :users do
     resource :upload_profile_pictures, only: %i[update destroy]
+    resources :user_contact_requests, only: %i[index create destroy], param: :uuid do
+      member do
+        post :accept
+      end
+    end
+    resources :user_contacts, only: %i[index]
   end
 
   # Defines the root path route ("/")

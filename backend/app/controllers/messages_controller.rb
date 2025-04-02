@@ -4,7 +4,7 @@ class MessagesController < ApplicationController
   before_action :set_entity, only: %i[destroy]
 
   def create
-    if Message.create(message_params)
+    if Message.create(message_params).valid?
       head :no_content
     else
       head :unprocessable_entity
@@ -12,11 +12,9 @@ class MessagesController < ApplicationController
   end
 
   def destroy
-    if @message.destroy
-      head :no_content
-    else
-      head :unprocessable_entity
-    end
+    @message.destroy!
+
+    head :no_content
   end
 
   private

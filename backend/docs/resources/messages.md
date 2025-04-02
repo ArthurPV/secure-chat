@@ -44,12 +44,12 @@ This endpoint is used to delete a message.
 
 No request body.
 
-#### Response
+#### Responses
 
 ##### 204 No Content
 
 No response body.
 
-##### 422 Unprocessable Content
+##### 500 Internal Server Error
 
 No response body.

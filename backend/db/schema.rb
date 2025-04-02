@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_04_01_111221) do
+ActiveRecord::Schema[7.2].define(version: 2025_04_02_031244) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -51,6 +51,31 @@ ActiveRecord::Schema[7.2].define(version: 2025_04_01_111221) do
     t.bigint "user_id", null: false
     t.index ["user_conversation_id"], name: "index_messages_on_user_conversation_id"
     t.index ["user_id"], name: "index_messages_on_user_id"
+  end
+
+  create_table "user_contact_requests", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "contacted_id", null: false
+    t.uuid "uuid", default: -> { "gen_random_uuid()" }, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_user_contact_requests_on_user_id"
+  end
+
+  create_table "user_contacteds", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_contact_id", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_contact_id"], name: "index_user_contacteds_on_user_contact_id"
+    t.index ["user_id"], name: "index_user_contacteds_on_user_id"
+  end
+
+  create_table "user_contacts", force: :cascade do |t|
+    t.integer "status", default: 0, null: false
+    t.uuid "uuid", default: -> { "gen_random_uuid()" }, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "user_conversation_keys", force: :cascade do |t|
@@ -111,6 +136,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_04_01_111221) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "messages", "user_conversations"
   add_foreign_key "messages", "users"
+  add_foreign_key "user_contact_requests", "users"
+  add_foreign_key "user_contacteds", "user_contacts"
+  add_foreign_key "user_contacteds", "users"
   add_foreign_key "user_conversation_keys", "user_conversations"
   add_foreign_key "user_jtis", "users"
   add_foreign_key "user_keys", "users"
