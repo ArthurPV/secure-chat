@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';  // Import Firebase Core
-import 'screens/walkthrough.dart';
-import 'screens/verification_phone.dart';
-import 'screens/verification_code.dart';
-import 'screens/profile.dart';
-import 'screens/main_screen.dart';
-import 'utils/local_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'screens/edit_profile.dart';
+
+import 'screens/walkthrough.dart';
+// import 'screens/profile.dart';
+import 'screens/main_screen.dart';
+// import 'screens/edit_profile.dart';
 import 'screens/chat_detail.dart';
-import 'screens/chats.dart';
+// import 'screens/chats.dart';
+import 'screens/sign_up.dart';
+import 'screens/sign_in.dart';
+import 'utils/local_storage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,12 +40,12 @@ class SecureChatApp extends StatelessWidget {
       initialRoute: isUserLoggedIn ? '/main' : '/',
       routes: {
         '/': (context) => WalkthroughScreen(),
-        '/phone_verification': (context) => PhoneVerificationScreen(),
-        '/verification_code': (context) => VerificationCodeScreen(),
-        '/profile': (context) => ProfileScreen(),
+        // '/profile': (context) => ProfileScreen(),
         '/main': (context) => MainScreen(),
-        '/edit_profile': (context) => EditProfileScreen(),
-        '/chats': (context) => ChatsScreen(),
+        // '/edit_profile': (context) => EditProfileScreen(),
+        // '/chats': (context) => ChatsScreen(),
+        '/sign_up': (context) => SignUpScreen(),
+        '/sign_in': (context) => SignInScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/chat_detail') {
