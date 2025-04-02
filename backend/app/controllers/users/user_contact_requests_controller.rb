@@ -8,7 +8,7 @@ class Users::UserContactRequestsController < Users::BaseController
   end
 
   def create
-    if UserContactRequest.create(user_contact_requests_params.merge({ user_id: Current.user.id }))
+    if UserContactRequest.create(user_contact_requests_params.merge({ user_id: Current.user.id })).valid?
       head :no_content
     else
       head :unprocessable_entity
@@ -16,11 +16,9 @@ class Users::UserContactRequestsController < Users::BaseController
   end
 
   def destroy
-    if @entity.destroy
-      head :no_content
-    else
-      head :unprocessable_entity
-    end
+    @entity.destroy!
+
+    head :no_content
   end
 
   def accept

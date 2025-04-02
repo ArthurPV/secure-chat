@@ -3,5 +3,5 @@ class UserContact < ApplicationRecord
 
   enum :status, { accepted: 0, blocked: 1 }
 
-  has_many :user_contacteds
+  has_many :user_contacteds, dependent: :destroy
 end

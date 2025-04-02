@@ -44,7 +44,7 @@ This endpoint is used to delete a message.
 
 No request body.
 
-#### Response
+#### Responses
 
 ##### 204 No Content
 

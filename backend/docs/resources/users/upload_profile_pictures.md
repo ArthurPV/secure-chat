@@ -24,7 +24,7 @@ This endpoint is used to upload profile pictures for users.
 user[profile_picture]=@path_of_file
 ```
 
-#### Response
+#### Responses
 
 ##### 204 No Content
 
@@ -42,7 +42,7 @@ This endpoint is used to delete profile pictures for users.
 
 No request body.
 
-#### Response
+#### Responses
 
 ##### 204 No Content
 

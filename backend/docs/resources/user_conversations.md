@@ -28,7 +28,7 @@ This endpoint is used to create a new user conversation.
 }
 ```
 
-#### Response
+#### Responses
 
 ##### 200 OK
 
@@ -46,7 +46,7 @@ This endpoint is used to delete a user conversation.
 
 No request body.
 
-#### Response
+#### Responses
 
 ##### 204 No Content
 

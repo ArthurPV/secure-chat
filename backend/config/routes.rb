@@ -24,7 +24,7 @@ Rails.application.routes.draw do
 
   namespace :users do
     resource :upload_profile_pictures, only: %i[update destroy]
-    resources :user_contact_requests, only: %i[create destroy], param: :uuid do
+    resources :user_contact_requests, only: %i[index create destroy], param: :uuid do
       member do
         post :accept
       end

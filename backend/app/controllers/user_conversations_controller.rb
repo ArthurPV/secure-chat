@@ -12,7 +12,7 @@ class UserConversationsController < ApplicationController
   def show; end
 
   def create
-    if UserConversation.create(user_conversation_params)
+    if UserConversation.create(user_conversation_params).valid?
       head :no_content
     else
       head :unprocessable_entity
@@ -20,11 +20,9 @@ class UserConversationsController < ApplicationController
   end
 
   def destroy
-    if @entity.destroy
-      head :no_content
-    else
-      head :unprocessable_entity
-    end
+    @entity.destroy!
+
+    head :no_content
   end
 
   private
