@@ -5,6 +5,14 @@ class Auth::RegistrationsController < Auth::Override::Devise::RegistrationsContr
 
   # POST /auth/sign_up
   def create
-    super
+    super do
+      if resource.persisted?
+        head :no_content
+      else
+        head :unprocessable_entity
+      end
+
+      return
+    end
   end
 end

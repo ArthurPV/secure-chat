@@ -8,11 +8,18 @@ class User < ApplicationRecord
   encrypts :phone_number, deterministic: true
   encrypts :username, deterministic: true
 
-  has_one_attached :profile_picture
+  has_and_belongs_to_many :user_conversations
+  has_and_belongs_to_many :conversations, join_table: "user_conversations"
+
   has_many :user_jtis, dependent: :destroy
   has_many :messages, dependent: :destroy
-  has_and_belongs_to_many :user_conversations
+  has_many :user_contact_requests, dependent: :destroy
+  has_many :user_contact_requesteds, class_name: "UserContactRequest", foreign_key: "contacted_id", dependent: :destroy
+  has_many :user_contacteds, dependent: :destroy
+
   has_one :user_key, autosave: true, dependent: :destroy
+
+  has_one_attached :profile_picture
 
   # Include default devise modules. Others available are:
   # :confirmable, :lockable, :timeoutable, :trackable and :omniauthable
@@ -29,10 +36,12 @@ class User < ApplicationRecord
 
   before_create :create_user_key
 
-  alias :conversations :user_conversations
-
   def profile_picture_url
     profile_picture.attached? ? profile_picture.url : nil
+  end
+
+  def user_contacts
+    UserContact.where(uuid: user_contacteds.pluck(:user_contact_id))
   end
 
   private

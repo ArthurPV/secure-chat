@@ -4,6 +4,8 @@ class MessagesController < ApplicationController
   before_action :set_entity, only: %i[destroy]
 
   def create
+    authorize! :create, Message
+
     if Message.create(message_params)
       head :no_content
     else
