@@ -5,7 +5,6 @@ import 'package:basic_utils/basic_utils.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../repositories/data_repository.dart';
 import '../utils/local_storage.dart';
 import '../utils/crypto_utils.dart';
 import '../utils/sercure_store.dart';
@@ -60,20 +59,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Vérifie si une clé privée existe déjà en local.
     final existingKey = await LocalStorage.getPrivateKeyForUid(uid);
     if (existingKey != null) {
-      print("DEBUG: Une clé privée pour cet UID existe déjà. On ne régénère pas la clé.");
+      print(
+          "DEBUG: Une clé privée pour cet UID existe déjà. On ne régénère pas la clé.");
       // Attempt to decrypt the stored private key using the provided passphrase.
       try {
         final privObj = jsonDecode(existingKey);
         decryptPrivateKey(privObj['encrypted'], privObj['iv'], passphrase);
       } catch (e) {
-        setState(() => _errorMessage = "Passphrase incorrecte, veuillez réessayer.");
+        setState(
+            () => _errorMessage = "Passphrase incorrecte, veuillez réessayer.");
         return;
       }
       // If decryption is successful, save the passphrase.
       await SecureStore.savePassphraseForUid(uid, passphrase);
       // Retrieve existing public key from Firestore to avoid overwriting.
       String existingPublicKey = "";
-      final userDoc = await FirebaseFirestore.instance.collection('usernames').doc(name).get();
+      final userDoc = await FirebaseFirestore.instance
+          .collection('usernames')
+          .doc(name)
+          .get();
       if (userDoc.exists) {
         Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
         existingPublicKey = data['publicKey'] ?? "";
@@ -86,7 +90,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     } else {
       // Si aucune clé n'existe localement, tente de récupérer le backup depuis Firestore.
-      final userDoc = await FirebaseFirestore.instance.collection('usernames').doc(name).get();
+      final userDoc = await FirebaseFirestore.instance
+          .collection('usernames')
+          .doc(name)
+          .get();
       if (userDoc.exists) {
         Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
         String? backup = data['privateKeyBackup'];
@@ -97,7 +104,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             final privObj = jsonDecode(backup);
             decryptPrivateKey(privObj['encrypted'], privObj['iv'], passphrase);
           } catch (e) {
-            setState(() => _errorMessage = "Passphrase incorrecte, veuillez réessayer.");
+            setState(() =>
+                _errorMessage = "Passphrase incorrecte, veuillez réessayer.");
             return;
           }
           await SecureStore.savePassphraseForUid(uid, passphrase);
@@ -114,7 +122,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Aucune clé locale ou backup trouvée: on génère une nouvelle paire RSA.
     final keyPair = generateRSAKeyPair();
     final publicKeyPem = CryptoUtils.encodeRSAPublicKeyToPem(keyPair.publicKey);
-    final privateKeyPem = CryptoUtils.encodeRSAPrivateKeyToPem(keyPair.privateKey);
+    final privateKeyPem =
+        CryptoUtils.encodeRSAPrivateKeyToPem(keyPair.privateKey);
 
     // Crypte la clé privée avec la passphrase.
     final encResult = encryptPrivateKey(privateKeyPem, passphrase);
@@ -131,7 +140,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Met à jour le profil dans Firestore en incluant le backup de la clé privée.
   Future<void> _updateFirestoreProfile(String name, String passphrase,
-      {bool isKeyAlreadyPresent = false, String publicKeyPem = "", String privateKeyBackup = ""}) async {
+      {bool isKeyAlreadyPresent = false,
+      String publicKeyPem = "",
+      String privateKeyBackup = ""}) async {
     final phone = await LocalStorage.getPhoneNumber() ?? "";
     final profile = UserProfile(
       username: name,

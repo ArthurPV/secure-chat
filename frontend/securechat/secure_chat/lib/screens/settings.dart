@@ -1,14 +1,14 @@
-// lib/screens/settings.dart
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../utils/local_storage.dart';
-import '../utils/sercure_store.dart';
+import 'package:secure_chat/models/user.dart';
+import 'package:secure_chat/requests/auth/authorization.dart';
+import 'package:secure_chat/requests/user.dart';
 import 'edit_profile.dart';
 
 class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
   @override
-  _SettingsScreenState createState() => _SettingsScreenState();
+  State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
@@ -22,29 +22,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _loadUserData() async {
-    String? savedName = await LocalStorage.getUsername();
-    String? savedPhone = await LocalStorage.getPhoneNumber();
+    // TODO: Store the user data in a secure storage or local storage
+    UserRequests userRequests = UserRequests();
+    ModelUser user = await userRequests.get();
+
     setState(() {
-      _username = savedName ?? "Unknown User";
-      _phoneNumber = savedPhone ?? "Not Set";
+      _username = user.username;
+      _phoneNumber = user.phoneNumber;
     });
   }
 
   /// Logs out the current Firebase user. Note: The private key is preserved so that the user can re-use it on subsequent logins.
+  // TODO: Logout
   void _logout(BuildContext context) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    final uid = currentUser?.uid;
+    RequestsAuthorization requestsAuthorization = RequestsAuthorization();
 
-    if (uid != null) {
-      // Remove the user's passphrase from Secure Storage
-      await SecureStore.clearPassphraseForUid(uid);
+    await requestsAuthorization.signOut();
 
-      // Do not clear the user's private key so that it persists across logins.
-      // await LocalStorage.clearUserData(uid);
+    if (context.mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
     }
-
-    await FirebaseAuth.instance.signOut();
-    Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
   }
 
   void _openEditProfile(BuildContext context) {

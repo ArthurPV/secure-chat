@@ -56,7 +56,7 @@ class WalkthroughScreen extends StatelessWidget {
                   padding: EdgeInsets.symmetric(vertical: 16, horizontal: 40),
                 ),
                 onPressed: () {
-                  Navigator.pushNamed(context, '/phone_verification');
+                  Navigator.pushNamed(context, '/sign_in');
                 },
                 child: Text(
                   "Démarrer la messagerie",

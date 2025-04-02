@@ -1,31 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';  // Import Firebase Core
-import 'screens/walkthrough.dart';
-import 'screens/verification_phone.dart';
-import 'screens/verification_code.dart';
-import 'screens/profile.dart';
-import 'screens/main_screen.dart';
-import 'utils/local_storage.dart';
+import 'package:secure_chat/utils/sercure_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'screens/edit_profile.dart';
+
+import 'screens/walkthrough.dart';
+// import 'screens/profile.dart';
+import 'screens/main_screen.dart';
+// import 'screens/edit_profile.dart';
 import 'screens/chat_detail.dart';
-import 'screens/chats.dart';
+// import 'screens/chats.dart';
+import 'screens/sign_up.dart';
+import 'screens/sign_in.dart';
+import 'utils/local_storage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Initialize Firebase before doing anything else.
-  await Firebase.initializeApp();
+  String? currentUser = await SecureStore.getCurrentUser();
 
-  final prefs = await SharedPreferences.getInstance();
-  bool isFirstLaunch = prefs.getBool('first_launch') ?? true; // ✅ Check if it's the first launch
-  String? savedUser = await LocalStorage.getUsername();
-
-  if (isFirstLaunch) {
-    await prefs.setBool('first_launch', false); // 🚀 Mark that setup is done
-    savedUser = null; // Force the app to start fresh
-  }
-
-  runApp(SecureChatApp(isUserLoggedIn: savedUser != null));
+  runApp(SecureChatApp(isUserLoggedIn: currentUser != null));
 }
 
 class SecureChatApp extends StatelessWidget {
@@ -39,15 +30,15 @@ class SecureChatApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'SecureChat',
       theme: ThemeData(primarySwatch: Colors.blue),
-      initialRoute: isUserLoggedIn ? '/main' : '/', // 🚀 Only go to main if a user exists
+      initialRoute: isUserLoggedIn ? '/main' : '/',
       routes: {
         '/': (context) => WalkthroughScreen(),
-        '/phone_verification': (context) => PhoneVerificationScreen(),
-        '/verification_code': (context) => VerificationCodeScreen(),
-        '/profile': (context) => ProfileScreen(),
+        // '/profile': (context) => ProfileScreen(),
         '/main': (context) => MainScreen(),
-        '/edit_profile': (context) => EditProfileScreen(),
-        '/chats': (context) => ChatsScreen(),
+        // '/edit_profile': (context) => EditProfileScreen(),
+        // '/chats': (context) => ChatsScreen(),
+        '/sign_up': (context) => SignUpScreen(),
+        '/sign_in': (context) => SignInScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/chat_detail') {
