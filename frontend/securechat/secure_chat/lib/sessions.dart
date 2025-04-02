@@ -60,7 +60,7 @@ class Sessions {
         return <String, String>{
             "Content-Type": "application/json",
             "Authorization": "Bearer ${(await _getSessionToken()) ?? ""}",
-        }
+        };
     }
 
     Future<void> _setSessionToken(String token) async {
@@ -82,7 +82,7 @@ class Sessions {
                 "email": email,
                 "password": password
             }
-        }
+        };
         final http.Response response = await http.post(
             Uri.parse(url),
             headers: await buildHeaders(),
